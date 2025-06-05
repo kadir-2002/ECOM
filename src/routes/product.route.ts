@@ -1,0 +1,33 @@
+import { Router } from 'express';
+import {
+  createProduct,
+  getAllProducts,
+  updateProduct,
+  deleteProduct,
+  getProductBySlug,
+  softDeleteProduct,
+  restoreProduct,
+} from '../controllers/product.controller';
+import { upload } from '../utils/multer';
+
+import variantRoutes from './variant.route';
+import { authenticate, authorizeAdmin } from '../utils/jwt';
+
+const router = Router();
+
+// Public routes
+router.get('/', getAllProducts);
+router.get('/info/:slug', getProductBySlug);
+
+router.use('/:id/variant', variantRoutes);
+
+// Admin-only routes
+router.use(authenticate, authorizeAdmin);
+
+router.post('/', upload.single('image'), createProduct);
+router.patch('/:id', upload.single('image'), updateProduct);
+router.delete('/:id', deleteProduct);
+router.patch('/deactivate/:id', softDeleteProduct);
+router.patch('/restore/:id', restoreProduct);
+
+export default router;
