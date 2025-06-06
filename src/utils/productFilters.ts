@@ -1,7 +1,6 @@
-interface OrderType {
-  createdAt?: 'asc' | 'desc';
-  basePrice?: 'asc' | 'desc';
-}
+type OrderType = 
+  | { basePrice: 'asc' | 'desc' }
+  | { createdAt: 'asc' | 'desc' };
 
 export function buildProductQuery(query: any) {
   const page = parseInt(query.page) || 1;
@@ -20,7 +19,10 @@ export function buildProductQuery(query: any) {
     isDeleted: false,
     OR: [
       { name: { contains: search, mode: 'insensitive' } },
+      { slug: { contains: search, mode: 'insensitive' } },
       { description: { contains: search, mode: 'insensitive' } },
+      { category: { name: { contains: search, mode: 'insensitive' } } },
+      { subcategory: { name: { contains: search, mode: 'insensitive' } } },
     ],
   };
 
