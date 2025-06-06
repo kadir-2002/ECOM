@@ -21,7 +21,7 @@ app.use(cors());
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/', (_req, res) => {
-  res.send(`<h1>Part of what makes programming difficult is most of the time we’re doing stuff we’ve never done before.</h1>`);
+  res.send(`<h1 style="font-family:sans-serif" >Part of what makes programming difficult is most of the time we’re doing stuff we’ve never done before.</h1>`);
 });
 
 

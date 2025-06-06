@@ -3,6 +3,7 @@ import prisma from '../utils/prisma';
 import { generateSlug } from '../utils/slugify';
 import fs from 'fs';
 import path from 'path';
+import { buildProductQuery } from '../utils/productFilters';
 
 export const createProduct = async (req: Request, res: Response) => {
   const { name, description, categoryId, subcategoryId, basePrice } = req.body;
@@ -43,31 +44,63 @@ export const createProduct = async (req: Request, res: Response) => {
 //   }
 // };
 
+// export const getAllProducts = async (req: Request, res: Response) => {
+//   const page = parseInt(req.query.page as string) || 1;
+//   const limit = parseInt(req.query.limit as string) || 10;
+//   const skip = (page - 1) * limit;
+
+//   try {
+//     const [products, total] = await Promise.all([
+//       prisma.product.findMany({
+//         where: { isDeleted: false },
+//         skip,
+//         take: limit,
+//         orderBy: { createdAt: 'desc' },
+//         include: {
+//           category: true,
+//           subcategory: true,
+//           variants: {
+//             include: {
+//               images: true, 
+//             },
+//           },
+//         },
+//       }),
+//       prisma.product.count({
+//         where: { isDeleted: false },
+//       }),
+//     ]);
+
+//     res.json({
+//       data: products,
+//       total,
+//       page,
+//       limit,
+//       totalPages: Math.ceil(total / limit),
+//     });
+//   } catch (error) {
+//     console.error('Error fetching paginated products:', error);
+//     res.status(500).json({ message: 'Error fetching products' });
+//   }
+// };
+
 export const getAllProducts = async (req: Request, res: Response) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
-  const skip = (page - 1) * limit;
+  const { where, orderBy, skip, limit, page } = buildProductQuery(req.query);
 
   try {
     const [products, total] = await Promise.all([
       prisma.product.findMany({
-        where: { isDeleted: false },
+        where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         include: {
           category: true,
           subcategory: true,
-          variants: {
-            include: {
-              images: true, 
-            },
-          },
+          variants: { include: { images: true } },
         },
       }),
-      prisma.product.count({
-        where: { isDeleted: false },
-      }),
+      prisma.product.count({ where }),
     ]);
 
     res.json({
@@ -78,7 +111,7 @@ export const getAllProducts = async (req: Request, res: Response) => {
       totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
-    console.error('Error fetching paginated products:', error);
+    console.error('Product fetch error:', error);
     res.status(500).json({ message: 'Error fetching products' });
   }
 };
