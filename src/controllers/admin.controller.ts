@@ -8,39 +8,59 @@ import { parse } from 'fast-csv';
 import { format } from 'fast-csv';
 import * as fastcsv from 'fast-csv';
 import { generateSlug } from '../utils/slugify';
+import cloudinary from '../utils/cloudinary';
 
 
+
+interface CloudinaryUploadResult {
+  secure_url: string;
+  public_id: string;
+}
 
 export const createUserByAdmin = async (req: CustomRequest, res: Response) => {
   const { email, password, profile, role = 'USER' } = req.body;
 
   if (req.user?.role !== 'ADMIN') {
-    res.status(403).json({ message: 'Only admins can create users' });
-    return;
+     res.status(403).json({ message: 'Only admins can create users' });
+     return
   }
 
-  let profileData = profile;
-  if (typeof profile === 'string') {
-    profileData = JSON.parse(profile);
-  }
+  let profileData = typeof profile === 'string' ? JSON.parse(profile) : profile;
 
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-        res.status(400).json({ message: 'User already exists' });
-        return;
+       res.status(400).json({ message: 'User already exists' });
+       return
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    let imageUrl: string | null = null;
+
+    if (req.file) {
+      const result = await new Promise<CloudinaryUploadResult>((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: 'users' },
+          (error, result) => {
+            if (error || !result) return reject(error);
+            resolve(result as CloudinaryUploadResult);
+          }
+        ).end(req.file!.buffer);
+      });
+
+      imageUrl = result.secure_url;
+    }
+
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
-        role, // can be 'USER' or 'ADMIN'
+        role,
         profile: {
           create: {
             ...profileData,
-            imageUrl: req.file ? `/uploads/${req.file.filename}` : null,
+            imageUrl,
           },
         },
       },
@@ -49,6 +69,7 @@ export const createUserByAdmin = async (req: CustomRequest, res: Response) => {
 
     res.status(201).json({ message: 'User created by admin', userId: user.id });
   } catch (err) {
+    console.error('Create user error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -57,16 +78,35 @@ export const updateUserByAdmin = async (req: CustomRequest, res: Response) => {
   const { id } = req.params;
   const { email, role, profile } = req.body;
 
-  let profileData = profile;
-  if (typeof profile === 'string') {
-    profileData = JSON.parse(profile);
-  }
+  let profileData = typeof profile === 'string' ? JSON.parse(profile) : profile;
 
   try {
-    const existingUser = await prisma.user.findUnique({ where: { id: +id } });
+    const existingUser = await prisma.user.findUnique({
+      where: { id: +id },
+      include: { profile: true },
+    });
+
     if (!existingUser) {
       res.status(404).json({ message: 'User not found' });
       return;
+    }
+
+    let imageUrl = existingUser.profile?.imageUrl;
+
+    if (req.file) {
+      // We can't delete old image by publicId since we don't have it, so skip deletion
+
+      const result = await new Promise<CloudinaryUploadResult>((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: 'users' },
+          (error, result) => {
+            if (error || !result) return reject(error);
+            resolve(result as CloudinaryUploadResult);
+          }
+        ).end(req.file!.buffer);
+      });
+
+      imageUrl = result.secure_url;
     }
 
     const updatedUser = await prisma.user.update({
@@ -77,7 +117,7 @@ export const updateUserByAdmin = async (req: CustomRequest, res: Response) => {
         profile: {
           update: {
             ...profileData,
-            imageUrl: req.file ? `/uploads/${req.file.filename}` : undefined,
+            imageUrl,
           },
         },
       },
@@ -86,10 +126,11 @@ export const updateUserByAdmin = async (req: CustomRequest, res: Response) => {
 
     res.status(200).json({ message: 'User updated', user: updatedUser });
   } catch (err) {
-    console.error(err);
+    console.error('Update user error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
+
 
 export const resetUserPasswordByAdmin = async (req: CustomRequest, res: Response) => {
   const { userId, newPassword } = req.body;
