@@ -179,7 +179,11 @@ export const updateProduct = async (req: Request, res: Response) => {
 
   try {
     const existing = await prisma.product.findUnique({ where: { id } });
-    if (!existing) return res.status(404).json({ message: 'Product not found' });
+    if (!existing) {
+    res.status(404).json({ message: 'Product not found' });
+    return
+    }
+      
 
     let imageUrl = existing.imageUrl;
     let publicId = existing.publicId;
