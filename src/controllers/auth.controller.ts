@@ -9,14 +9,19 @@ export const register = async (req: Request, res: Response) => {
 
   let profileData = profile;
   if (typeof profile === 'string') {
-    profileData = JSON.parse(profile);
+    try {
+      profileData = JSON.parse(profile);
+    } catch (err) {
+       res.status(400).json({ message: 'Invalid profile format' });
+       return;
+    }
   }
 
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
        res.status(400).json({ message: 'User already exists' });
-       return
+       return;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
