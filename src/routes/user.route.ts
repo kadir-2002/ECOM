@@ -10,6 +10,7 @@ import {
 
 import { authenticate } from '../utils/jwt';
 import { upload } from '../utils/multer';
+import { uploadMemory } from '../utils/multerCloudinary';
 
 
 const router = Router();
@@ -20,7 +21,7 @@ router.use(authenticate);
 router.delete('/delete', deleteOwnAccount);
 router.patch('/deactivate', softDeleteOwnAccount);
 router.patch('/restore', restoreOwnAccount);
-router.patch('/update', upload.single('image'), updateOwnProfile);
+router.patch('/update', uploadMemory.single('image'), updateOwnProfile);
 router.patch('/change-password', changePassword);
 router.get('/details', getMe);
 

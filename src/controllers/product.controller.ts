@@ -4,24 +4,76 @@ import { generateSlug } from '../utils/slugify';
 import fs from 'fs';
 import path from 'path';
 import { buildProductQuery } from '../utils/productFilters';
+import cloudinary from '../utils/cloudinary';
+
+// export const createProduct = async (req: Request, res: Response) => {
+//   const { name, description, categoryId, subcategoryId, basePrice } = req.body;
+//   const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
+
+//   try {
+//     const slug = await generateSlug(name, 'product');
+//     const product = await prisma.product.create({
+//       data: {
+//         name,
+//         slug,
+//         description,
+//         imageUrl,
+//         basePrice: basePrice ? parseFloat(basePrice) : undefined,
+//         categoryId: parseInt(categoryId),
+//         subcategoryId: parseInt(subcategoryId),
+//       },
+//     });
+//     res.status(201).json(product);
+//   } catch (error) {
+//     console.error('Create product error:', error);
+//     res.status(500).json({ message: 'Error creating product' });
+//   }
+// };
+
+
+interface CloudinaryUploadResult {
+  secure_url: string;
+  public_id: string;
+}
 
 export const createProduct = async (req: Request, res: Response) => {
   const { name, description, categoryId, subcategoryId, basePrice } = req.body;
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
 
   try {
+    let imageUrl: string | undefined;
+    let publicId: string | undefined;
+
+    if (req.file) {
+      const result = await new Promise<CloudinaryUploadResult>((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { folder: 'products' },
+          (error, result) => {
+            if (error || !result) return reject(error);
+            resolve(result as CloudinaryUploadResult);
+          }
+        );
+        uploadStream.end(req.file!.buffer);
+      });
+
+      imageUrl = result.secure_url;
+      publicId = result.public_id;
+    }
+
     const slug = await generateSlug(name, 'product');
+
     const product = await prisma.product.create({
       data: {
         name,
         slug,
         description,
         imageUrl,
+        publicId,
         basePrice: basePrice ? parseFloat(basePrice) : undefined,
         categoryId: parseInt(categoryId),
         subcategoryId: parseInt(subcategoryId),
       },
     });
+
     res.status(201).json(product);
   } catch (error) {
     console.error('Create product error:', error);
@@ -29,60 +81,6 @@ export const createProduct = async (req: Request, res: Response) => {
   }
 };
 
-// export const getAllProducts = async (_req: Request, res: Response) => {
-//   try {
-//     // const products = await prisma.product.findMany({
-//     //   include: { category: true, subcategory: true, variants: true },
-//     // });
-//     const products = await prisma.product.findMany({
-//       where: { isDeleted: false }, // 👈 Filter out soft-deleted
-//       include: { category: true, subcategory: true, variants: true },
-//     });
-//     res.json(products);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error fetching products' });
-//   }
-// };
-
-// export const getAllProducts = async (req: Request, res: Response) => {
-//   const page = parseInt(req.query.page as string) || 1;
-//   const limit = parseInt(req.query.limit as string) || 10;
-//   const skip = (page - 1) * limit;
-
-//   try {
-//     const [products, total] = await Promise.all([
-//       prisma.product.findMany({
-//         where: { isDeleted: false },
-//         skip,
-//         take: limit,
-//         orderBy: { createdAt: 'desc' },
-//         include: {
-//           category: true,
-//           subcategory: true,
-//           variants: {
-//             include: {
-//               images: true, 
-//             },
-//           },
-//         },
-//       }),
-//       prisma.product.count({
-//         where: { isDeleted: false },
-//       }),
-//     ]);
-
-//     res.json({
-//       data: products,
-//       total,
-//       page,
-//       limit,
-//       totalPages: Math.ceil(total / limit),
-//     });
-//   } catch (error) {
-//     console.error('Error fetching paginated products:', error);
-//     res.status(500).json({ message: 'Error fetching products' });
-//   }
-// };
 
 export const getAllProducts = async (req: Request, res: Response) => {
   const { where, orderBy, skip, limit, page } = buildProductQuery(req.query);
@@ -146,23 +144,83 @@ export const getProductBySlug = async (req: Request, res: Response) => {
   }
 };
 
+// export const updateProduct = async (req: Request, res: Response) => {
+//   const id = parseInt(req.params.id);
+//   const { name, description, categoryId, subcategoryId, basePrice } = req.body;
+//   const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
+
+//   try {
+//     const updated = await prisma.product.update({
+//       where: { id },
+//       data: {
+//         name,
+//         description,
+//         imageUrl: imageUrl ?? undefined,
+//         basePrice: basePrice ? parseFloat(basePrice) : undefined,
+//         categoryId: categoryId ? parseInt(categoryId) : undefined,
+//         subcategoryId: subcategoryId ? parseInt(subcategoryId) : undefined,
+//       },
+//     });
+//     res.json(updated);
+//   } catch (error: any) {
+//     console.error('Update product error:', error);
+//     if (error.code === 'P2025') {
+//       res.status(404).json({ message: 'Product not found' });
+//       return;
+//     }
+
+//     res.status(500).json({ message: 'Error updating product', details: error.message });
+//   }
+// };
+
 export const updateProduct = async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
   const { name, description, categoryId, subcategoryId, basePrice } = req.body;
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
 
   try {
+    const existing = await prisma.product.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ message: 'Product not found' });
+
+    let imageUrl = existing.imageUrl;
+    let publicId = existing.publicId;
+
+    if (req.file) {
+      // Delete old image from Cloudinary if exists
+      if (publicId) {
+        await cloudinary.uploader.destroy(publicId).catch((err) => {
+          console.warn('Failed to delete old image from Cloudinary:', err.message);
+        });
+      }
+
+      // Upload new image
+      const result = await new Promise<CloudinaryUploadResult>((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          { folder: 'products' },
+          (error, result) => {
+            if (error || !result) return reject(error);
+            resolve(result as CloudinaryUploadResult);
+          }
+        );
+        uploadStream.end(req.file!.buffer);
+      });
+
+      imageUrl = result.secure_url;
+      publicId = result.public_id;
+    }
+
     const updated = await prisma.product.update({
       where: { id },
       data: {
         name,
         description,
-        imageUrl: imageUrl ?? undefined,
+        imageUrl,
+        publicId,
         basePrice: basePrice ? parseFloat(basePrice) : undefined,
         categoryId: categoryId ? parseInt(categoryId) : undefined,
         subcategoryId: subcategoryId ? parseInt(subcategoryId) : undefined,
       },
     });
+
     res.json(updated);
   } catch (error: any) {
     console.error('Update product error:', error);
@@ -174,20 +232,6 @@ export const updateProduct = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error updating product', details: error.message });
   }
 };
-
-// export const deleteProduct = async (req: Request, res: Response) => {
-//   const id = parseInt(req.params.id);
-//   try {
-//     await prisma.product.delete({ where: { id } });
-//     res.json({ message: 'Product deleted' });
-//   } catch (error: any) {
-//     if (error.code === 'P2025') {
-//       res.status(404).json({ message: 'Product not found' });
-//       return;
-//     }
-//     res.status(500).json({ message: 'Error deleting product' });
-//   }
-// };
 
 export const softDeleteProduct = async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
@@ -229,29 +273,60 @@ export const restoreProduct = async (req: Request, res: Response) => {
   }
 };
 
+// export const deleteProduct = async (req: Request, res: Response) => {
+//   const id = parseInt(req.params.id);
+
+//   try {
+//     // Step 1: Fetch product to get image path
+//     const product = await prisma.product.findUnique({ where: { id } });
+
+//     if (!product) {
+//        res.status(404).json({ message: 'Product not found' });
+//        return;
+//     }
+
+//     // Step 2: Delete image file from disk if exists
+//     if (product.imageUrl) {
+//       const imagePath = path.join(__dirname, '..', 'uploads', path.basename(product.imageUrl));
+//       fs.unlink(imagePath, (err) => {
+//         if (err) {
+//           console.warn('Failed to delete image file:', err.message);
+//         }
+//       });
+//     }
+
+//     // Step 3: Delete from DB
+//     await prisma.product.delete({ where: { id } });
+
+//     res.json({ message: 'Product and image deleted' });
+//   } catch (error: any) {
+//     console.error('Delete product error:', error);
+//     if (error.code === 'P2025') {
+//       res.status(404).json({ message: 'Product not found' });
+//     } else {
+//       res.status(500).json({ message: 'Error deleting product' });
+//     }
+//   }
+// };
+
 export const deleteProduct = async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
 
   try {
-    // Step 1: Fetch product to get image path
     const product = await prisma.product.findUnique({ where: { id } });
 
     if (!product) {
-       res.status(404).json({ message: 'Product not found' });
-       return;
+      res.status(404).json({ message: 'Product not found' });
+      return;
     }
 
-    // Step 2: Delete image file from disk if exists
-    if (product.imageUrl) {
-      const imagePath = path.join(__dirname, '..', 'uploads', path.basename(product.imageUrl));
-      fs.unlink(imagePath, (err) => {
-        if (err) {
-          console.warn('Failed to delete image file:', err.message);
-        }
+    // Delete image from Cloudinary if exists
+    if (product.publicId) {
+      await cloudinary.uploader.destroy(product.publicId).catch((err) => {
+        console.warn('Failed to delete Cloudinary image:', err.message);
       });
     }
 
-    // Step 3: Delete from DB
     await prisma.product.delete({ where: { id } });
 
     res.json({ message: 'Product and image deleted' });

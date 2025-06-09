@@ -12,6 +12,7 @@ import { upload } from '../utils/multer';
 
 import variantRoutes from './variant.route';
 import { authenticate, authorizeAdmin } from '../utils/jwt';
+import { uploadMemory } from '../utils/multerCloudinary';
 
 const router = Router();
 
@@ -24,8 +25,8 @@ router.use('/:id/variant', variantRoutes);
 // Admin-only routes
 router.use(authenticate, authorizeAdmin);
 
-router.post('/', upload.single('image'), createProduct);
-router.patch('/:id', upload.single('image'), updateProduct);
+router.post('/', uploadMemory.single('image'), createProduct);
+router.patch('/:id', uploadMemory.single('image'), updateProduct);
 router.delete('/:id', deleteProduct);
 router.patch('/deactivate/:id', softDeleteProduct);
 router.patch('/restore/:id', restoreProduct);

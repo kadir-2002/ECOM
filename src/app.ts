@@ -2,6 +2,7 @@ import express, { NextFunction, Request, Response } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import path from 'path';
+import guestRoutes from './routes/guest.route';
 import authRoutes from './routes/auth.route';
 import adminRoutes from './routes/admin.route';
 import userRoutes from './routes/user.route';
@@ -25,6 +26,7 @@ app.get('/', (_req, res) => {
 });
 
 
+app.use('/guest', guestRoutes);
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/admin', adminRoutes);

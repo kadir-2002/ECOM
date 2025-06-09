@@ -1,36 +1,38 @@
+// src/controllers/guest.controller.ts
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
-import { CustomRequest } from '../utils/jwt';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 
-type OrderItemInput = {
-  productId?: number;
-  variantId?: number;
-  quantity: number;
-  price: number;
-};
-
-// Create new order for authenticated user
-export const createOrder = async (req: CustomRequest, res: Response) => {
-  const userId = req.user?.userId;
+export const guestCheckout = async (req: Request, res: Response) => {
   const {
+    email,
+    address,
     items,
-    addressId,
     totalAmount,
     paymentMethod,
   }: {
-    items: OrderItemInput[];
-    addressId: number;
+    email: string;
+    address: {
+      fullName: string;
+      phone: string;
+      pincode: string;
+      state: string;
+      city: string;
+      addressLine: string;
+      landmark?: string;
+    };
+    items: {
+      productId?: number;
+      variantId?: number;
+      quantity: number;
+      price: number;
+    }[];
     totalAmount: number;
     paymentMethod: string;
   } = req.body;
 
-  if (!userId) {
-     res.status(401).json({ message: 'Unauthorized' });
-     return
-  }
-
   try {
+    // Validate items: must have either productId or variantId (not both or neither)
     const createItems = items.map((item, idx) => {
       const hasProduct = typeof item.productId === 'number';
       const hasVariant = typeof item.variantId === 'number';
@@ -51,6 +53,31 @@ export const createOrder = async (req: CustomRequest, res: Response) => {
       };
     });
 
+    let guestUser = await prisma.user.findFirst({
+      where: {
+        email,
+        isGuest: true,
+      },
+    });
+
+    if (!guestUser) {
+      guestUser = await prisma.user.create({
+        data: {
+          email,
+          isGuest: true,
+        },
+      });
+    }
+
+    const savedAddress = await prisma.address.create({
+      data: {
+        userId: guestUser.id,
+        type: 'SHIPPING',
+        isDefault: true,
+        ...address,
+      },
+    });
+
     const payment = await prisma.payment.create({
       data: {
         method: paymentMethod,
@@ -60,8 +87,8 @@ export const createOrder = async (req: CustomRequest, res: Response) => {
 
     const order = await prisma.order.create({
       data: {
-        userId,
-        addressId,
+        userId: guestUser.id,
+        addressId: savedAddress.id,
         totalAmount,
         status: OrderStatus.PENDING,
         paymentId: payment.id,
@@ -71,44 +98,14 @@ export const createOrder = async (req: CustomRequest, res: Response) => {
       },
       include: {
         items: true,
-        payment: true,
-      },
-    });
-
-    res.status(201).json(order);
-  } catch (error) {
-    console.error('Create order failed:', error);
-    res.status(500).json({ message: 'Failed to create order', error });
-  }
-};
-
-// Get orders for logged in user
-export const getUserOrders = async (req: CustomRequest, res: Response) => {
-  const userId = req.user?.userId;
-  if (!userId) {
-     res.status(401).json({ message: 'Unauthorized' });
-     return
-  }
-
-  try {
-    const orders = await prisma.order.findMany({
-      where: { userId },
-      include: {
-        items: {
-          include: {
-            product: true,
-            variant: true,
-          },
-        },
-        payment: true,
         address: true,
+        payment: true,
       },
-      orderBy: { createdAt: 'desc' },
     });
 
-    res.json(orders);
+    res.status(201).json({ message: 'Guest order placed', order });
   } catch (error) {
-    console.error('Fetch orders failed:', error);
-    res.status(500).json({ message: 'Failed to fetch orders', error });
+    console.error('Guest checkout failed:', error);
+    res.status(500).json({ message: 'Guest checkout failed', error });
   }
 };

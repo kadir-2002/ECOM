@@ -8,7 +8,7 @@ export const createVariant = async (req: Request, res: Response) => {
      res.status(400).json({ message: 'All fields are required' });
      return;
   }
-
+  console.log(name,price,stock,productId);
   try {
     const variant = await prisma.variant.create({
       data: {
@@ -18,6 +18,7 @@ export const createVariant = async (req: Request, res: Response) => {
         productId: parseInt(productId),
       },
     });
+    console.log(variant)
     res.status(201).json(variant);
   } catch (error) {
     console.error(error);

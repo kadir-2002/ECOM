@@ -1,84 +1,104 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
-import fs from 'fs';
-import path from 'path';
+import { v2 as cloudinary } from 'cloudinary';
 
-export const createVariantImage = async (req: Request, res: Response) => {
+interface JwtPayload {
+  userId: number;
+  role: 'USER' | 'ADMIN';
+}
+export interface UpdateRequest extends Request {
+  user?: JwtPayload;
+  file?: Express.Multer.File;
+}
+
+export const createVariantImage = async (req: UpdateRequest, res: Response) => {
   const variantId = +req.body.variantId;
 
   if (!variantId || isNaN(variantId)) {
      res.status(400).json({ message: 'Invalid or missing variantId' });
-     return;
+     return
   }
 
   const files = req.files as Express.Multer.File[];
 
   if (!files || files.length === 0) {
      res.status(400).json({ message: 'At least one image is required' });
-     return;
+     return
   }
 
   try {
-    const images = await prisma.variantImage.createMany({
-      data: files.map((file) => ({
-        url: `/uploads/${file.filename}`,
+    const uploadResults = await Promise.all(
+      files.map((file) =>
+        new Promise<{ url: string; public_id: string }>((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            { folder: 'variant_images' },
+            (error, result) => {
+              if (error || !result) return reject(error);
+              resolve({ url: result.secure_url, public_id: result.public_id });
+            }
+          ).end(file.buffer);
+        })
+      )
+    );
+
+    const created = await prisma.variantImage.createMany({
+      data: uploadResults.map((result) => ({
+        url: result.url,
+        publicId: result.public_id,
         variantId,
       })),
     });
 
-    res.status(201).json({ message: 'Images uploaded successfully', count: images.count });
+    res.status(201).json({ message: 'Images uploaded to Cloudinary', count: created.count });
   } catch (err) {
-    console.error('Error creating variant images:', err);
+    console.error('Cloudinary upload failed:', err);
     res.status(500).json({ message: 'Failed to upload images' });
   }
 };
 
-
-export const getAllVariantImages = async (req: Request, res: Response) => {
-  const variantId = req.query.variantId ? +req.query.variantId : undefined;
-
-  try {
-    const images = await prisma.variantImage.findMany({
-      where: variantId ? { variantId } : undefined,
-      include: { variant: true },
-    });
-    res.json(images);
-  } catch (err) {
-    console.error('Error fetching variant images:', err);
-    res.status(500).json({ message: 'Failed to fetch variant images' });
-  }
-};
-
-export const getVariantImageById = async (req: Request, res: Response) => {
-  const id = +req.params.variantId;
-
-  try {
-    const image = await prisma.variantImage.findUnique({
-      where: { id },
-      include: { variant: true },
-    });
-
-    if (!image) {
-       res.status(404).json({ message: 'Image not found' });
-       return;
-    }
-
-    res.json(image);
-  } catch (err) {
-    console.error('Error fetching variant image:', err);
-    res.status(500).json({ message: 'Failed to fetch variant image' });
-  }
-};
-
-export const updateVariantImage = async (req: Request, res: Response) => {
+export const updateVariantImage = async (req: UpdateRequest, res: Response) => {
   const id = +req.params.id;
   const variantId = req.body.variantId ? +req.body.variantId : undefined;
 
   try {
+    const existing = await prisma.variantImage.findUnique({ where: { id } });
+    if (!existing) {
+      res.status(404).json({ message: 'Image not found' });
+      return
+    }
+      
+
+    let imageUrl = existing.url;
+    let publicId = existing.publicId;
+
+    if (req.file) {
+      // 🧹 Delete old image from Cloudinary
+      if (publicId) {
+        await cloudinary.uploader.destroy(publicId).catch((err) => {
+          console.warn('Failed to delete old image from Cloudinary:', err.message);
+        });
+      }
+
+      // 📤 Upload new image
+      const result = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: 'variant_images' },
+          (error, result) => {
+            if (error || !result) return reject(error);
+            resolve({ secure_url: result.secure_url, public_id: result.public_id });
+          }
+        ).end(req.file!.buffer);
+      });
+
+      imageUrl = result.secure_url;
+      publicId = result.public_id;
+    }
+
     const updated = await prisma.variantImage.update({
       where: { id },
       data: {
-        url: req.file ? `/uploads/${req.file.filename}` : undefined,
+        url: imageUrl,
+        publicId,
         ...(variantId ? { variantId } : {}),
       },
     });
@@ -97,21 +117,64 @@ export const deleteVariantImage = async (req: Request, res: Response) => {
     const image = await prisma.variantImage.findUnique({ where: { id } });
 
     if (!image) {
-       res.status(404).json({ message: 'Image not found' });
-       return;
+     res.status(404).json({ message: 'Image not found' });
+     return
+    }  
+
+    if (image.publicId) {
+      await cloudinary.uploader.destroy(image.publicId).catch((err) => {
+        console.warn('Cloudinary deletion failed:', err.message);
+      });
     }
 
-    const imagePath = path.join(__dirname, '..', '..', 'uploads', path.basename(image.url || ''));
-    fs.unlink(imagePath, (err) => {
-      if (err) {
-        console.warn('File not found or failed to delete:', err.message);
-      }
-    });
-
     await prisma.variantImage.delete({ where: { id } });
+
     res.json({ message: 'Variant image deleted successfully' });
   } catch (err) {
     console.error('Error deleting variant image:', err);
     res.status(500).json({ message: 'Failed to delete variant image' });
   }
 };
+
+export const getAllVariantImages = async (req: Request, res: Response) => {
+  const variantId = req.query.variantId ? Number(req.query.variantId) : undefined;
+
+  try {
+    const images = await prisma.variantImage.findMany({
+      where: variantId ? { variantId } : undefined,
+      include: { variant: true }, // optional: include related variant data
+    });
+
+    res.json(images);
+  } catch (error) {
+    console.error('Error fetching variant images:', error);
+    res.status(500).json({ message: 'Failed to fetch variant images' });
+  }
+};
+
+export const getVariantImageById = async (req: Request, res: Response) => {
+  const id = Number(req.params.variantId);
+
+  if (isNaN(id)) {
+     res.status(400).json({ message: 'Invalid variant image id' });
+     return
+  }
+
+  try {
+    const image = await prisma.variantImage.findUnique({
+      where: { id },
+      include: { variant: true }, // optional
+    });
+
+    if (!image) {
+       res.status(404).json({ message: 'Variant image not found' });
+       return
+    }
+
+    res.json(image);
+  } catch (error) {
+    console.error('Error fetching variant image:', error);
+    res.status(500).json({ message: 'Failed to fetch variant image' });
+  }
+};
+

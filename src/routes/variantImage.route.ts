@@ -8,6 +8,7 @@ import {
 } from '../controllers/variantImage.controller';
 import { authenticate, authorizeAdmin } from '../utils/jwt';
 import { upload } from '../utils/multer';
+import { uploadMemory } from '../utils/multerCloudinary';
 
 const router = Router();
 
@@ -18,8 +19,8 @@ router.get('/:variantId', getVariantImageById);
 // Admin-only routes
 router.use(authenticate, authorizeAdmin);
 
-router.post('/', upload.array('images', 5), createVariantImage);
-router.patch('/:id', upload.array('images', 5), updateVariantImage);
+router.post('/', uploadMemory.array('images', 5), createVariantImage);
+router.patch('/:id', uploadMemory.array('images', 5), updateVariantImage);
 router.delete('/:id', deleteVariantImage);
 
 export default router;

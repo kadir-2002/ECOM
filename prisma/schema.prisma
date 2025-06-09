@@ -22,7 +22,8 @@ enum Role {
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
-  password  String
+  password  String?  // 🔄 Made optional for guests
+  isGuest   Boolean  @default(false) // ✅ NEW: Flag for guest users
   profile   Profile? @relation(fields: [profileId], references: [id])
   profileId Int?     @unique 
   createdAt DateTime @default(now())
@@ -72,6 +73,7 @@ model Product {
   name          String
   description   String?
   imageUrl      String?
+  publicId      String?
   basePrice     Float?
   category      Category?    @relation("CategoryToProduct", fields: [categoryId], references: [id])
   categoryId    Int?
@@ -104,6 +106,7 @@ model VariantImage {
   url       String
   variant   Variant  @relation(fields: [variantId], references: [id])
   variantId Int
+  publicId  String?
   createdAt DateTime @default(now())
 }
 

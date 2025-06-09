@@ -2,73 +2,30 @@ import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import bcrypt from 'bcryptjs';
 import { CustomRequest } from '../utils/jwt';
-import fs from 'fs';
-import path from 'path';
+import cloudinary from '../utils/cloudinary'; // Cloudinary client config
 
+// Helper to delete Cloudinary image by public ID
+const deleteCloudinaryImage = async (imageUrl: string) => {
+  try {
+    // Extract public ID from URL, e.g.:
+    // https://res.cloudinary.com/demo/image/upload/v1234567890/folder/file.jpg
+    // public ID = "folder/file"
+    const urlParts = imageUrl.split('/');
+    const lastPart = urlParts[urlParts.length - 1]; // "file.jpg"
+    const folder = urlParts[urlParts.length - 2]; // "folder" (if used)
+    const publicId = `${folder}/${lastPart.split('.')[0]}`; // remove extension
 
-// export const deleteOwnAccount = async (req: CustomRequest, res: Response) => {
-//   const userId = req.user?.userId;
-//   if (!userId) {
-//      res.status(401).json({ message: 'Unauthorized' });
-//      return;
-//   }
-
-//   try {
-//     await prisma.user.delete({ where: { id: userId } });
-//     res.json({ message: 'Your account has been deleted' });
-//   } catch (error) {
-//     console.error('Error deleting account:', error);
-//     res.status(500).json({ message: 'Failed to delete account' });
-//   }
-// };
-
-// export const updateOwnProfile = async (req: CustomRequest, res: Response) => {
-//   const userId = req.user?.userId;
-//   const { firstName, lastName, bio } = req.body;
-
-//   if (!userId) {
-//      res.status(401).json({ message: 'Unauthorized' });
-//      return;
-//   }
-
-//   try {
-//     // const user = await prisma.user.findUnique({ where: { id: userId } });
-
-//     const user = await prisma.user.findFirst({
-//       where: {
-//         id: userId,
-//         isDeleted: false,
-//       },
-//     });
-
-//     if (!user?.profileId) {
-//        res.status(404).json({ message: 'Profile not found' });
-//        return;
-//     }
-
-//     const profileUpdateData: any = { firstName, lastName, bio };
-//     if (req.file) {
-//       profileUpdateData.imageUrl = `/uploads/${req.file.filename}`;
-//     }
-
-//     const updatedProfile = await prisma.profile.update({
-//       where: { id: user.profileId },
-//       data: profileUpdateData,
-//     });
-
-//     res.json({ message: 'Your profile updated', profile: updatedProfile });
-//   } catch (error) {
-//     console.error('Error updating profile:', error);
-//     res.status(500).json({ message: 'Failed to update profile' });
-//   }
-// };
-
+    await cloudinary.uploader.destroy(publicId);
+  } catch (err) {
+    console.warn('Failed to delete Cloudinary image:', err);
+  }
+};
 
 export const deleteOwnAccount = async (req: CustomRequest, res: Response) => {
   const userId = req.user?.userId;
   if (!userId) {
-    res.status(401).json({ message: 'Unauthorized' });
-    return;
+     res.status(401).json({ message: 'Unauthorized' });
+     return
   }
 
   try {
@@ -78,15 +35,13 @@ export const deleteOwnAccount = async (req: CustomRequest, res: Response) => {
     });
 
     if (user?.profile?.imageUrl) {
-      const imagePath = path.join(__dirname, '..', 'uploads', path.basename(user.profile.imageUrl));
-      fs.unlink(imagePath, (err) => {
-        if (err) console.warn('Failed to delete profile image:', err.message);
-      });
+      await deleteCloudinaryImage(user.profile.imageUrl);
     }
 
     if (user?.profileId) {
       await prisma.profile.delete({ where: { id: user.profileId } });
     }
+
     await prisma.user.delete({ where: { id: userId } });
 
     res.json({ message: 'Your account has been deleted' });
@@ -96,42 +51,50 @@ export const deleteOwnAccount = async (req: CustomRequest, res: Response) => {
   }
 };
 
-export const updateOwnProfile = async (req: CustomRequest, res: Response) => {
+interface JwtPayload {
+  userId: number;
+  role: 'USER' | 'ADMIN';
+}
+export interface UpdateRequest extends Request {
+  user?: JwtPayload;
+  file?: Express.Multer.File;
+}
+
+export const updateOwnProfile = async (req: UpdateRequest, res: Response) => {
   const userId = req.user?.userId;
   const { firstName, lastName, bio } = req.body;
 
   if (!userId) {
-    res.status(401).json({ message: 'Unauthorized' });
-    return;
+     res.status(401).json({ message: 'Unauthorized' });
+     return
   }
 
   try {
     const user = await prisma.user.findFirst({
-      where: {
-        id: userId,
-        isDeleted: false,
-      },
-      include: {
-        profile: true,
-      },
+      where: { id: userId, isDeleted: false },
+      include: { profile: true },
     });
 
     if (!user?.profile || !user.profileId) {
-      res.status(404).json({ message: 'Profile not found' });
-      return;
+       res.status(404).json({ message: 'Profile not found' });
+       return
     }
 
     const profileUpdateData: any = { firstName, lastName, bio };
 
-    // ✅ Delete old image if a new one is uploaded
     if (req.file) {
-      if (user.profile.imageUrl) {
-        const oldImagePath = path.join(__dirname, '..', 'uploads', path.basename(user.profile.imageUrl));
-        fs.unlink(oldImagePath, (err) => {
-          if (err) console.warn('Failed to delete old profile image:', err.message);
-        });
-      }
-      profileUpdateData.imageUrl = `/uploads/${req.file.filename}`;
+      const uploadResult = await new Promise<{ secure_url: string }>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'profile_images' },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result as { secure_url: string });
+          }
+        );
+        stream.end(req.file!.buffer); // `!` is safe here due to `if (req.file)`
+      });
+
+      profileUpdateData.imageUrl = uploadResult.secure_url;
     }
 
     const updatedProfile = await prisma.profile.update({
@@ -146,7 +109,7 @@ export const updateOwnProfile = async (req: CustomRequest, res: Response) => {
   }
 };
 
-export const changePassword = async (req: CustomRequest, res: Response) => {
+export const changePassword = async (req: CustomRequest, res: Response): Promise<void> => {
   const { oldPassword, newPassword } = req.body;
 
   if (!req.user) {
@@ -161,7 +124,13 @@ export const changePassword = async (req: CustomRequest, res: Response) => {
        return;
     }
 
+    if (!user.password) {
+       res.status(400).json({ message: 'Password not set for this user' });
+       return;
+    }
+
     const isValid = await bcrypt.compare(oldPassword, user.password);
+
     if (!isValid) {
        res.status(400).json({ message: 'Old password is incorrect' });
        return;
@@ -180,26 +149,18 @@ export const changePassword = async (req: CustomRequest, res: Response) => {
 export const getMe = async (req: CustomRequest, res: Response) => {
   if (!req.user) {
      res.status(401).json({ message: 'Unauthorized' });
-     return;
+     return
   }
 
   try {
-    // const user = await prisma.user.findUnique({
-    //   where: { id: req.user.userId },
-    //   include: { profile: true },
-    // });
-
     const user = await prisma.user.findFirst({
-      where: {
-        id: req.user.userId,
-        isDeleted: false,
-      },
+      where: { id: req.user.userId, isDeleted: false },
       include: { profile: true },
     });
 
     if (!user) {
        res.status(404).json({ message: 'User not found' });
-       return;
+       return
     }
 
     res.json({
@@ -216,13 +177,13 @@ export const getMe = async (req: CustomRequest, res: Response) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
-  
+
 export const softDeleteOwnAccount = async (req: CustomRequest, res: Response) => {
   const userId = req.user?.userId;
 
   if (!userId) {
      res.status(401).json({ message: 'Unauthorized' });
-     return;
+     return
   }
 
   try {
@@ -242,8 +203,8 @@ export const restoreOwnAccount = async (req: CustomRequest, res: Response) => {
   const userId = req.user?.userId;
 
   if (!userId) {
-    res.status(401).json({ message: 'Unauthorized' });
-    return;
+     res.status(401).json({ message: 'Unauthorized' });
+     return
   }
 
   try {
