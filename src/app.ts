@@ -13,6 +13,7 @@ import cartRoutes from './routes/cart.route';
 import addressRoutes from './routes/address.route';
 import orderRoutes from './routes/order.route';
 import paymentRoutes from './routes/payment.route';
+import './utils/abandonedCartReminder'; // 🛒 Import the cron job to send abandoned cart reminders
 
 dotenv.config();
 

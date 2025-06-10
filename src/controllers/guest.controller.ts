@@ -1,7 +1,7 @@
 // src/controllers/guest.controller.ts
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
-import { OrderStatus, PaymentStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus, AddressType } from '@prisma/client';
 
 export const guestCheckout = async (req: Request, res: Response) => {
   const {
@@ -32,7 +32,7 @@ export const guestCheckout = async (req: Request, res: Response) => {
   } = req.body;
 
   try {
-    // Validate items: must have either productId or variantId (not both or neither)
+    // Validate items
     const createItems = items.map((item, idx) => {
       const hasProduct = typeof item.productId === 'number';
       const hasVariant = typeof item.variantId === 'number';
@@ -40,7 +40,6 @@ export const guestCheckout = async (req: Request, res: Response) => {
       if (!hasProduct && !hasVariant) {
         throw new Error(`Item ${idx + 1}: Must have either productId or variantId.`);
       }
-
       if (hasProduct && hasVariant) {
         throw new Error(`Item ${idx + 1}: Cannot have both productId and variantId.`);
       }
@@ -53,6 +52,7 @@ export const guestCheckout = async (req: Request, res: Response) => {
       };
     });
 
+    // Find or create guest user
     let guestUser = await prisma.user.findFirst({
       where: {
         email,
@@ -69,15 +69,17 @@ export const guestCheckout = async (req: Request, res: Response) => {
       });
     }
 
+    // Save guest address
     const savedAddress = await prisma.address.create({
       data: {
         userId: guestUser.id,
-        type: 'SHIPPING',
+        type: AddressType.SHIPPING,
         isDefault: true,
         ...address,
       },
     });
 
+    // Create payment record
     const payment = await prisma.payment.create({
       data: {
         method: paymentMethod,
@@ -85,6 +87,7 @@ export const guestCheckout = async (req: Request, res: Response) => {
       },
     });
 
+    // Create the order with items
     const order = await prisma.order.create({
       data: {
         userId: guestUser.id,
@@ -103,9 +106,13 @@ export const guestCheckout = async (req: Request, res: Response) => {
       },
     });
 
-    res.status(201).json({ message: 'Guest order placed', order });
-  } catch (error) {
+    res.status(201).json({ message: 'Guest order placed successfully', order });
+
+  } catch (error: any) {
     console.error('Guest checkout failed:', error);
-    res.status(500).json({ message: 'Guest checkout failed', error });
+    res.status(500).json({
+      message: 'Guest checkout failed',
+      error: error?.message || 'Unknown error',
+    });
   }
 };

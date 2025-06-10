@@ -27,7 +27,7 @@ export const register = async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     let imageUrl: string | null = null;
-    let publicId: string | null = null;
+    // let publicId: string | null = null;
 
     if (req.file) {
       const result = await new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
@@ -42,7 +42,7 @@ export const register = async (req: Request, res: Response) => {
       });
 
       imageUrl = result.secure_url;
-      publicId = result.public_id;
+      // publicId = result.public_id;
     }
 
     const user = await prisma.user.create({
@@ -54,7 +54,7 @@ export const register = async (req: Request, res: Response) => {
           create: {
             ...profileData,
             imageUrl,
-            publicId,
+            // publicId,
           },
         },
       },

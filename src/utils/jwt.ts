@@ -12,7 +12,7 @@ export interface CustomRequest extends Request {
 }
 
 export const generateToken = (payload: JwtPayload): string => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '2h' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
 };
 
 export const verifyToken = (token: string): JwtPayload => {

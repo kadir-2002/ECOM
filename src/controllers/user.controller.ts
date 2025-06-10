@@ -41,7 +41,7 @@ export const deleteOwnAccount = async (req: CustomRequest, res: Response) => {
     if (user?.profileId) {
       await prisma.profile.delete({ where: { id: user.profileId } });
     }
-
+    await prisma.cart.deleteMany({ where: { userId: userId } });
     await prisma.user.delete({ where: { id: userId } });
 
     res.json({ message: 'Your account has been deleted' });
