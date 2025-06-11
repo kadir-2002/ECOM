@@ -284,7 +284,11 @@ export const getBestSellingProducts= async (req: Request, res: Response) => {
       include:{
         category: true,
         subcategory: true,
-        variants: true,
+        variants: {
+          include: {
+            images: true
+          }
+        },
       }
     });
     const highSellingProducts=products.map(product=>{

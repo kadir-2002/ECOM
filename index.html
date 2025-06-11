@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Product List with Variants</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 text-gray-900 p-6">
+    <div class="max-w-5xl mx-auto">
+      <h1 class="text-3xl font-bold mb-6 text-center">All Products</h1>
+
+      <div id="container" class="flex flex-col md:flex-row gap-8">
+        <!-- Product List on left -->
+        <div
+          id="product-list"
+          class="grid grid-cols-1 md:grid-cols-1 gap-4 md:w-1/3 overflow-y-auto max-h-[600px]"
+        ></div>
+
+        <!-- Product Detail on right -->
+        <div
+          id="product-detail"
+          class="md:w-2/3 p-4 border border-gray-300 rounded bg-white hidden overflow-y-auto max-h-[600px]"
+        ></div>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE = "https://ecom-testing.up.railway.app";
+
+      // Fetch and display all products in the list
+      async function fetchProducts() {
+        try {
+          const res = await fetch(`${API_BASE}/product?page=1&limit=20`);
+          const data = await res.json();
+
+          const listEl = document.getElementById("product-list");
+          listEl.innerHTML = "";
+
+          data.data.forEach((product) => {
+            const div = document.createElement("div");
+            div.className =
+              "bg-white p-4 rounded shadow cursor-pointer hover:bg-gray-50 transition flex items-center gap-4";
+
+            div.innerHTML = `
+            <img src="${product.imageUrl}" alt="${
+              product.name
+            }" class="w-20 h-20 object-cover rounded" />
+            <div>
+              <h2 class="text-xl font-semibold">${product.name}</h2>
+              <p class="text-sm text-gray-600">${
+                product.description || "No description available"
+              }</p>
+            </div>
+          `;
+
+            div.onclick = () => fetchProductDetail(product.slug);
+            listEl.appendChild(div);
+          });
+        } catch (error) {
+          console.error("Failed to fetch products:", error);
+          document.getElementById("product-list").innerHTML =
+            '<p class="text-red-500">Error loading products.</p>';
+        }
+      }
+
+      async function fetchProductDetail(slug) {
+        try {
+          const res = await fetch(`${API_BASE}/product/info/${slug}`);
+          const product = await res.json();
+
+          const variants = Array.isArray(product.variants)
+            ? product.variants
+            : [];
+          const detailEl = document.getElementById("product-detail");
+
+          detailEl.innerHTML = `
+      <div class="flex flex-col md:flex-row gap-6">
+        <img src="${product.imageUrl}" alt="${
+            product.name
+          }" class="w-full md:w-1/3 object-cover rounded" />
+        <div class="md:flex-1">
+          <h2 class="text-3xl font-bold mb-2">${product.name}</h2>
+          <p class="mb-4 text-gray-700">${
+            product.description || "No description available"
+          }</p>
+          <p class="text-sm text-gray-500 mb-1"><strong>Slug:</strong> ${
+            product.slug
+          }</p>
+          <p class="text-sm text-gray-500 mb-1"><strong>Category:</strong> ${
+            product.category?.name || "N/A"
+          }</p>
+          <p class="text-sm text-gray-500 mb-1"><strong>Subcategory:</strong> ${
+            product.subcategory?.name || "N/A"
+          }</p>
+          <p class="text-sm text-gray-500 mb-4"><strong>Base Price:</strong> ₹${
+            product.basePrice || "N/A"
+          }</p>
+
+          <h3 class="text-xl font-semibold mb-2">Variants:</h3>
+          <ul id="variant-list" class="space-y-2 max-h-48 overflow-y-auto border p-2 rounded bg-gray-50">
+            ${variants
+              .map(
+                (variant) => `
+                <li class="border-b border-gray-200 pb-2 cursor-pointer hover:bg-blue-50" 
+                    data-variant-id="${variant.id}">
+                  <p><strong>${variant.name}</strong></p>
+                  <p>Price: ₹${variant.price}</p>
+                  <p>Stock: ${variant.stock}</p>
+                </li>
+              `
+              )
+              .join("")}
+          </ul>
+          <div id="variant-images-viewer" class="mt-4"></div>
+        </div>
+      </div>
+    `;
+
+          detailEl.classList.remove("hidden");
+
+          // Now attach event listeners to variants
+          const variantList = document.getElementById("variant-list");
+          const variantListItems = variantList.querySelectorAll(
+            "li[data-variant-id]"
+          );
+
+          variantListItems.forEach((li) => {
+            li.addEventListener("click", function () {
+              const variantId = parseInt(this.getAttribute("data-variant-id"));
+              const variant = product.variants.find((v) => v.id === variantId);
+              const imagesViewer = document.getElementById(
+                "variant-images-viewer"
+              );
+
+              if (!variant || !variant.images || variant.images.length === 0) {
+                imagesViewer.innerHTML = "<p>No images for this variant.</p>";
+                return;
+              }
+
+              imagesViewer.innerHTML = `
+          <div class="flex gap-2 overflow-x-auto">
+            ${variant.images
+              .map(
+                (img) =>
+                  `<img src="${img.url}" alt="Variant image" class="w-32 h-32 object-cover rounded border" />`
+              )
+              .join("")}
+          </div>
+        `;
+            });
+          });
+        } catch (error) {
+          console.error("Failed to fetch product detail:", error);
+          const detailEl = document.getElementById("product-detail");
+          detailEl.innerHTML =
+            '<p class="text-red-500">Error loading product details.</p>';
+          detailEl.classList.remove("hidden");
+        }
+      }
+
+      fetchProducts();
+    </script>
+  </body>
+</html>
