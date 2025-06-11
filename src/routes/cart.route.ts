@@ -6,12 +6,11 @@ import {
   removeCartItem,
   clearCart,
 } from '../controllers/cart.controller';
-import { authenticate } from '../auth/jwt';
+import { authenticate } from '../middlewares/authenticate';
 
 const router = Router();
 
-
-router.use(authenticate)
+router.use(authenticate);
 
 router.get('/', getCart);                          // Get current user's cart
 router.post('/add', addToCart);                    // Add item to cart

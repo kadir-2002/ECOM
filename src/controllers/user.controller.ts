@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../db/prisma';
 import bcrypt from 'bcryptjs';
-import { CustomRequest } from '../auth/jwt';
+import { CustomRequest } from '../middlewares/authenticate';
 import cloudinary from '../upload/cloudinary'; // Cloudinary client config
 
 // Helper to delete Cloudinary image by public ID

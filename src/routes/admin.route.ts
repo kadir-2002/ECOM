@@ -10,7 +10,8 @@ import {
   exportVariantsToCSV,
   importVariantsFromCSV,
 } from '../controllers/admin.controller';
-import { authenticate, authorizeAdmin } from '../auth/jwt';
+import { authenticate } from '../middlewares/authenticate';
+import { authorizeAdmin } from '../middlewares/authorizaAdmin';
 import { upload } from '../upload/multer';
 import { uploadCsv } from '../upload/multerCsv';
 import { uploadMemory } from '../upload/multerCloudinary';

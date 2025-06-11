@@ -8,7 +8,8 @@ import {
   restoreVariant,
   softDeleteVariant,
 } from '../controllers/variant.controller';
-import { authenticate, authorizeAdmin } from '../auth/jwt';
+import { authenticate } from '../middlewares/authenticate';
+import { authorizeAdmin } from '../middlewares/authorizaAdmin';
 import variantImageRoutes from './variantImage.route';
 
 

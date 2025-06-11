@@ -9,8 +9,8 @@ import {
   restoreCategory,
 } from '../controllers/category.controller';
 import subcategoryRoutes from './subcategory.route';
-import { authenticate, authorizeAdmin } from '../auth/jwt';
-
+import { authenticate } from '../middlewares/authenticate';
+import { authorizeAdmin } from '../middlewares/authorizaAdmin';
 const router = Router();
 
 //public route
@@ -21,7 +21,7 @@ router.use('/subcategory', subcategoryRoutes);
 
 
 //admin route
-router.use( authenticate, authorizeAdmin );
+router.use(authenticate, authorizeAdmin);
 
 router.post('/', createCategory);
 router.patch('/:id', updateCategory);

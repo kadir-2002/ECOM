@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { generateOTP } from '../auth/otp';
+import { generateOTP } from '../utils/otp';
 import { sendOTPEmail } from '../email/mail';
 import bcrypt from 'bcryptjs';
 import prisma from '../db/prisma';

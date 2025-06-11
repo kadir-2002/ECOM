@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { generateToken } from '../auth/jwt';
+import { generateToken } from '../utils/jwt';
 import prisma from '../db/prisma';
 import cloudinary from '../upload/cloudinary';
 

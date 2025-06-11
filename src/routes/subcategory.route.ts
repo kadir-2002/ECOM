@@ -8,8 +8,8 @@ import {
   restoreSubcategory,
   softDeleteSubcategory,
 } from '../controllers/subcategory.controller';
-import { authenticate,authorizeAdmin } from '../auth/jwt';
-
+import { authenticate } from '../middlewares/authenticate';
+import { authorizeAdmin } from '../middlewares/authorizaAdmin';
 const router = Router();
 
 // Public routes
@@ -17,7 +17,7 @@ router.get('/', getAllSubcategories);
 router.get('/:slug', getSubcategoryBySlug);
 
 // Admin-only routes
-router.use(authenticate,authorizeAdmin);
+router.use(authenticate, authorizeAdmin);
 
 router.post('/', createSubcategory);
 router.patch('/:id', updateSubcategory);

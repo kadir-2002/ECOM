@@ -8,8 +8,7 @@ import {
   updateOwnProfile
 } from '../controllers/user.controller';
 
-import { authenticate } from '../auth/jwt';
-import { upload } from '../upload/multer';
+import { authenticate } from '../middlewares/authenticate';
 import { uploadMemory } from '../upload/multerCloudinary';
 
 

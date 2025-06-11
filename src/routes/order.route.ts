@@ -1,6 +1,6 @@
 import express from 'express';
 import { createOrder, getUserOrders } from '../controllers/order.controller';
-import { authenticate } from '../auth/jwt';
+import { authenticate } from '../middlewares/authenticate';
 
 const router = express.Router();
 

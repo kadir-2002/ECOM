@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../db/prisma';
-import { CustomRequest } from '../auth/jwt';
+import { CustomRequest } from '../middlewares/authenticate';
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'fast-csv';
@@ -296,7 +296,6 @@ export const exportProductsToCsv = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Failed to export products to CSV' });
   }
 };
-
 
 export const exportVariantsToCSV = async (req: Request, res: Response) => {
   try {

@@ -1,7 +1,7 @@
 import express from 'express';
 import { createPayment, updatePayment, getPaymentByOrder, listPayments, getPaymentById } from '../controllers/payment.controller';
-import { authenticate, authorizeAdmin } from '../auth/jwt';
-
+import { authenticate } from '../middlewares/authenticate';
+import { authorizeAdmin } from '../middlewares/authorizaAdmin';
 const router = express.Router();
 
 // Create a payment record for an order

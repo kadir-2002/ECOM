@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from 'express';
+import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import path from 'path';
@@ -13,20 +13,20 @@ import cartRoutes from './routes/cart.route';
 import addressRoutes from './routes/address.route';
 import orderRoutes from './routes/order.route';
 import paymentRoutes from './routes/payment.route';
-import './jobs/abandonedCartReminder'; 
 import helmet from 'helmet';
+import morgan from 'morgan';
+import { errorHandler } from './middlewares/errorHandler';
+import './jobs/abandonedCartReminder'; 
+import './jobs/cancelPendingOrders'; 
 
 dotenv.config();
 const app = express();
 
 app.use(helmet());
 app.use(cors());
+app.use(morgan('dev'));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-
-app.get('/', (_req, res) => {
-  res.send(`<h1 style="font-family:sans-serif" >Part of what makes programming difficult is most of the time we’re doing stuff we’ve never done before.</h1>`);
-});
 
 
 app.use('/guest', guestRoutes);
@@ -41,10 +41,7 @@ app.use('/address', addressRoutes);
 app.use('/order', orderRoutes);
 app.use('/payment', paymentRoutes);
 
-// helps catch unhandled errors
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong.' });
-});
+app.use(errorHandler);
+
 
 export default app;
