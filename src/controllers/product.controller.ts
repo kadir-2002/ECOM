@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
-import prisma from '../utils/prisma';
+import prisma from '../db/prisma';
 import { generateSlug } from '../utils/slugify';
 import fs from 'fs';
 import path from 'path';
 import { buildProductQuery } from '../utils/productFilters';
-import cloudinary from '../utils/cloudinary';
+import cloudinary from '../upload/cloudinary';
 
 // export const createProduct = async (req: Request, res: Response) => {
 //   const { name, description, categoryId, subcategoryId, basePrice } = req.body;

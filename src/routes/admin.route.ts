@@ -10,10 +10,10 @@ import {
   exportVariantsToCSV,
   importVariantsFromCSV,
 } from '../controllers/admin.controller';
-import { authenticate, authorizeAdmin } from '../utils/jwt';
-import { upload } from '../utils/multer';
-import { uploadCsv } from '../utils/multerCsv';
-import { uploadMemory } from '../utils/multerCloudinary';
+import { authenticate, authorizeAdmin } from '../auth/jwt';
+import { upload } from '../upload/multer';
+import { uploadCsv } from '../upload/multerCsv';
+import { uploadMemory } from '../upload/multerCloudinary';
 
 const router = Router();
 

@@ -1,14 +1,14 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import prisma from '../utils/prisma';
-import { CustomRequest } from '../utils/jwt';
+import prisma from '../db/prisma';
+import { CustomRequest } from '../auth/jwt';
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'fast-csv';
 import { format } from 'fast-csv';
 import * as fastcsv from 'fast-csv';
 import { generateSlug } from '../utils/slugify';
-import cloudinary from '../utils/cloudinary';
+import cloudinary from '../upload/cloudinary';
 
 
 

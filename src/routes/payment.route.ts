@@ -1,6 +1,6 @@
 import express from 'express';
 import { createPayment, updatePayment, getPaymentByOrder, listPayments, getPaymentById } from '../controllers/payment.controller';
-import { authenticate, authorizeAdmin } from '../utils/jwt';
+import { authenticate, authorizeAdmin } from '../auth/jwt';
 
 const router = express.Router();
 

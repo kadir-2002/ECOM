@@ -8,11 +8,11 @@ import {
   softDeleteProduct,
   restoreProduct,
 } from '../controllers/product.controller';
-import { upload } from '../utils/multer';
+import { upload } from '../upload/multer';
 
 import variantRoutes from './variant.route';
-import { authenticate, authorizeAdmin } from '../utils/jwt';
-import { uploadMemory } from '../utils/multerCloudinary';
+import { authenticate, authorizeAdmin } from '../auth/jwt';
+import { uploadMemory } from '../upload/multerCloudinary';
 
 const router = Router();
 

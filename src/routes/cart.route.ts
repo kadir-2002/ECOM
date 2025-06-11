@@ -6,7 +6,7 @@ import {
   removeCartItem,
   clearCart,
 } from '../controllers/cart.controller';
-import { authenticate } from '../utils/jwt';
+import { authenticate } from '../auth/jwt';
 
 const router = Router();
 

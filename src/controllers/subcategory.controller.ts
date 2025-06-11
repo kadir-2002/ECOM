@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../utils/prisma';
+import prisma from '../db/prisma';
 import { generateSlug } from '../utils/slugify';
 
 export const createSubcategory = async (req: Request, res: Response) => {

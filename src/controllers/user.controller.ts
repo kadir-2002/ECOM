@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import prisma from '../utils/prisma';
+import prisma from '../db/prisma';
 import bcrypt from 'bcryptjs';
-import { CustomRequest } from '../utils/jwt';
-import cloudinary from '../utils/cloudinary'; // Cloudinary client config
+import { CustomRequest } from '../auth/jwt';
+import cloudinary from '../upload/cloudinary'; // Cloudinary client config
 
 // Helper to delete Cloudinary image by public ID
 const deleteCloudinaryImage = async (imageUrl: string) => {

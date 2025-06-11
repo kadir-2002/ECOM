@@ -1,5 +1,5 @@
-import prisma from '../utils/prisma';
-import { sendAbandonedCartEmail } from '../utils/abandonedMail';
+import prisma from '../db/prisma';
+import { sendAbandonedCartEmail } from '../email/abandonedMail';
 import { CronJob } from 'cron';
 
 export async function sendAbandonedCartReminders() {

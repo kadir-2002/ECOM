@@ -8,9 +8,9 @@ import {
   updateOwnProfile
 } from '../controllers/user.controller';
 
-import { authenticate } from '../utils/jwt';
-import { upload } from '../utils/multer';
-import { uploadMemory } from '../utils/multerCloudinary';
+import { authenticate } from '../auth/jwt';
+import { upload } from '../upload/multer';
+import { uploadMemory } from '../upload/multerCloudinary';
 
 
 const router = Router();

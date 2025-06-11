@@ -1,7 +1,7 @@
 // src/controllers/cart.controller.ts
 import { Request, Response } from 'express';
-import prisma from '../utils/prisma';
-import { CustomRequest } from '../utils/jwt';
+import prisma from '../db/prisma';
+import { CustomRequest } from '../auth/jwt';
 
 // GET /cart
 export const getCart = async (req: CustomRequest, res: Response) => {

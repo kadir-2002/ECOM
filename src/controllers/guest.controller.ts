@@ -1,6 +1,6 @@
 // src/controllers/guest.controller.ts
 import { Request, Response } from 'express';
-import prisma from '../utils/prisma';
+import prisma from '../db/prisma';
 import { OrderStatus, PaymentStatus, AddressType } from '@prisma/client';
 
 export const guestCheckout = async (req: Request, res: Response) => {

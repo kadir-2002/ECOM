@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import prisma from '../utils/prisma';
-import { CustomRequest } from '../utils/jwt';
+import prisma from '../db/prisma';
+import { CustomRequest } from '../auth/jwt';
 
 export const createAddress = async (req: CustomRequest, res: Response) => {
   const userId = req.user?.userId;

@@ -6,7 +6,7 @@ import {
   deleteAddress,
   setDefaultAddress
 } from '../controllers/address.controller';
-import { authenticate } from '../utils/jwt';
+import { authenticate } from '../auth/jwt';
 
 const router = Router();
 

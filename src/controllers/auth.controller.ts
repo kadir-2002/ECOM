@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { generateToken } from '../utils/jwt';
-import prisma from '../utils/prisma';
-import cloudinary from '../utils/cloudinary';
+import { generateToken } from '../auth/jwt';
+import prisma from '../db/prisma';
+import cloudinary from '../upload/cloudinary';
 
 export const register = async (req: Request, res: Response) => {
   const { email, password, profile } = req.body;

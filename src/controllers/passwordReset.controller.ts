@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { generateOTP } from '../utils/otp';
-import { sendOTPEmail } from '../utils/mail';
+import { generateOTP } from '../auth/otp';
+import { sendOTPEmail } from '../email/mail';
 import bcrypt from 'bcryptjs';
-import prisma from '../utils/prisma';
+import prisma from '../db/prisma';
 
 
 export const requestPasswordReset = async (req: Request, res: Response) => {

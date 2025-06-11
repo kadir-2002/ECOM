@@ -6,9 +6,9 @@ import {
   updateVariantImage,
   deleteVariantImage,
 } from '../controllers/variantImage.controller';
-import { authenticate, authorizeAdmin } from '../utils/jwt';
-import { upload } from '../utils/multer';
-import { uploadMemory } from '../utils/multerCloudinary';
+import { authenticate, authorizeAdmin } from '../auth/jwt';
+import { upload } from '../upload/multer';
+import { uploadMemory } from '../upload/multerCloudinary';
 
 const router = Router();
 

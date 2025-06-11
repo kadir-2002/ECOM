@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import prisma from '../utils/prisma';
-import { CustomRequest } from '../utils/jwt';
+import prisma from '../db/prisma';
+import { CustomRequest } from '../auth/jwt';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 type OrderItemInput = {

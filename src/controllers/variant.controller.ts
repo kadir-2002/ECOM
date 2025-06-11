@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import prisma from '../utils/prisma';
+import prisma from '../db/prisma';
 
 export const createVariant = async (req: Request, res: Response) => {
   const { name, price, stock, productId } = req.body;

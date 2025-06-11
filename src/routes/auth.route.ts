@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { upload } from '../utils/multer';
+import { upload } from '../upload/multer';
 import { register, login } from '../controllers/auth.controller';
-import { uploadMemory } from '../utils/multerCloudinary';
+import { uploadMemory } from '../upload/multerCloudinary';
 
 const router = Router();
 

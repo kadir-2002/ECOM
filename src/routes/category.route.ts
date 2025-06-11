@@ -9,7 +9,7 @@ import {
   restoreCategory,
 } from '../controllers/category.controller';
 import subcategoryRoutes from './subcategory.route';
-import { authenticate, authorizeAdmin } from '../utils/jwt';
+import { authenticate, authorizeAdmin } from '../auth/jwt';
 
 const router = Router();
 

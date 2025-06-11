@@ -8,7 +8,7 @@ import {
   restoreSubcategory,
   softDeleteSubcategory,
 } from '../controllers/subcategory.controller';
-import { authenticate,authorizeAdmin } from '../utils/jwt';
+import { authenticate,authorizeAdmin } from '../auth/jwt';
 
 const router = Router();
 
