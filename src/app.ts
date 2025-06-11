@@ -14,12 +14,14 @@ import addressRoutes from './routes/address.route';
 import orderRoutes from './routes/order.route';
 import paymentRoutes from './routes/payment.route';
 import './utils/abandonedCartReminder'; // 🛒 Import the cron job to send abandoned cart reminders
+import helmet from 'helmet';
 
 dotenv.config();
-
 const app = express();
-app.use(express.json());
+
+app.use(helmet());
 app.use(cors());
+app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/', (_req, res) => {
