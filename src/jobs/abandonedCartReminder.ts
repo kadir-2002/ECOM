@@ -64,4 +64,4 @@ const job = new CronJob('0 0 * * *', sendAbandonedCartReminders);
 
 job.start();
 
-console.log('Abandoned cart reminder cron job started.');
+//console.log('Abandoned cart reminder cron job started.');

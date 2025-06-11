@@ -55,4 +55,4 @@ export async function cancelStalePendingOrdersAndNotify() {
 const job = new CronJob('0 0 * * *', cancelStalePendingOrdersAndNotify);
 
 job.start();
-console.log('Stale pending orders cancellation + email cron job started.');
+//console.log('Stale pending orders cancellation + email cron job started.');

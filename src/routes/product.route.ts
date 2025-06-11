@@ -7,6 +7,7 @@ import {
   getProductBySlug,
   softDeleteProduct,
   restoreProduct,
+  getBestSellingProducts,
 } from '../controllers/product.controller';
 import { upload } from '../upload/multer';
 
@@ -22,6 +23,9 @@ router.get('/', getAllProducts);
 router.get('/info/:slug', getProductBySlug);
 
 router.use('/:id/variant', variantRoutes);
+
+
+router.get('/best-selling', getBestSellingProducts);
 
 // Admin-only routes
 router.use(authenticate, authorizeAdmin);

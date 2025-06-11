@@ -1,34 +1,8 @@
 import { Request, Response } from 'express';
 import prisma from '../db/prisma';
 import { generateSlug } from '../utils/slugify';
-import fs from 'fs';
-import path from 'path';
 import { buildProductQuery } from '../utils/productFilters';
 import cloudinary from '../upload/cloudinary';
-
-// export const createProduct = async (req: Request, res: Response) => {
-//   const { name, description, categoryId, subcategoryId, basePrice } = req.body;
-//   const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
-
-//   try {
-//     const slug = await generateSlug(name, 'product');
-//     const product = await prisma.product.create({
-//       data: {
-//         name,
-//         slug,
-//         description,
-//         imageUrl,
-//         basePrice: basePrice ? parseFloat(basePrice) : undefined,
-//         categoryId: parseInt(categoryId),
-//         subcategoryId: parseInt(subcategoryId),
-//       },
-//     });
-//     res.status(201).json(product);
-//   } catch (error) {
-//     console.error('Create product error:', error);
-//     res.status(500).json({ message: 'Error creating product' });
-//   }
-// };
 
 
 interface CloudinaryUploadResult {
@@ -81,7 +55,6 @@ export const createProduct = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getAllProducts = async (req: Request, res: Response) => {
   const { where, orderBy, skip, limit, page } = buildProductQuery(req.query);
 
@@ -128,7 +101,11 @@ export const getProductBySlug = async (req: Request, res: Response) => {
       include: {
         category: true,
         subcategory: true,
-        variants: true,
+        variants: {
+          include: {
+            images: true
+          }
+        }
       },
     });
 
@@ -143,35 +120,6 @@ export const getProductBySlug = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error fetching product' });
   }
 };
-
-// export const updateProduct = async (req: Request, res: Response) => {
-//   const id = parseInt(req.params.id);
-//   const { name, description, categoryId, subcategoryId, basePrice } = req.body;
-//   const imageUrl = req.file ? `/uploads/${req.file.filename}` : undefined;
-
-//   try {
-//     const updated = await prisma.product.update({
-//       where: { id },
-//       data: {
-//         name,
-//         description,
-//         imageUrl: imageUrl ?? undefined,
-//         basePrice: basePrice ? parseFloat(basePrice) : undefined,
-//         categoryId: categoryId ? parseInt(categoryId) : undefined,
-//         subcategoryId: subcategoryId ? parseInt(subcategoryId) : undefined,
-//       },
-//     });
-//     res.json(updated);
-//   } catch (error: any) {
-//     console.error('Update product error:', error);
-//     if (error.code === 'P2025') {
-//       res.status(404).json({ message: 'Product not found' });
-//       return;
-//     }
-
-//     res.status(500).json({ message: 'Error updating product', details: error.message });
-//   }
-// };
 
 export const updateProduct = async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
@@ -277,41 +225,6 @@ export const restoreProduct = async (req: Request, res: Response) => {
   }
 };
 
-// export const deleteProduct = async (req: Request, res: Response) => {
-//   const id = parseInt(req.params.id);
-
-//   try {
-//     // Step 1: Fetch product to get image path
-//     const product = await prisma.product.findUnique({ where: { id } });
-
-//     if (!product) {
-//        res.status(404).json({ message: 'Product not found' });
-//        return;
-//     }
-
-//     // Step 2: Delete image file from disk if exists
-//     if (product.imageUrl) {
-//       const imagePath = path.join(__dirname, '..', 'uploads', path.basename(product.imageUrl));
-//       fs.unlink(imagePath, (err) => {
-//         if (err) {
-//           console.warn('Failed to delete image file:', err.message);
-//         }
-//       });
-//     }
-
-//     // Step 3: Delete from DB
-//     await prisma.product.delete({ where: { id } });
-
-//     res.json({ message: 'Product and image deleted' });
-//   } catch (error: any) {
-//     console.error('Delete product error:', error);
-//     if (error.code === 'P2025') {
-//       res.status(404).json({ message: 'Product not found' });
-//     } else {
-//       res.status(500).json({ message: 'Error deleting product' });
-//     }
-//   }
-// };
 
 export const deleteProduct = async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
@@ -341,5 +254,50 @@ export const deleteProduct = async (req: Request, res: Response) => {
     } else {
       res.status(500).json({ message: 'Error deleting product' });
     }
+  }
+};
+
+export const getBestSellingProducts= async (req: Request, res: Response) => {
+  const productLimit=Number(req.query.limit!) || 10;
+  try {
+    const highSelling=await prisma.orderItem.groupBy({
+      by: ['productId'],
+      _sum:{
+        quantity: true,
+      },
+      orderBy:{
+        _sum:{
+          quantity: 'desc',
+        }
+      },
+      take: productLimit,
+    });
+
+    highSelling.length===0 && res.json({ data: [], message: 'No sales found' });
+    const pIds=highSelling.map(i=>i.productId).filter((id): id is number => id !== null);
+    // console.log("Best Selling Product IDs:", pIds);
+    const products=await prisma.product.findMany({
+      where:{
+        id: { in: pIds },
+        isDeleted: false,
+      },
+      include:{
+        category: true,
+        subcategory: true,
+        variants: true,
+      }
+    });
+    const highSellingProducts=products.map(product=>{
+      const salesData=highSelling.find(b=>b.productId===product.id);
+      return {
+        ...product,
+        totalQuantitySold: salesData?._sum?.quantity || 0,
+      };
+    });
+    highSellingProducts.sort((a, b) => b.totalQuantitySold - a.totalQuantitySold);
+    res.json({ data: highSellingProducts });
+  }catch (error) {
+    console.error('Error fetching best selling products:', error);
+    res.status(500).json({ message: 'Error fetching best selling products' });
   }
 };
