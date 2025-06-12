@@ -1,13 +1,4 @@
-import nodemailer from 'nodemailer';
-
-// Set up your email transporter (like your example)
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+import { transporter } from './mail';
 
 export async function sendOrderCancelledEmail(email: string, orderId: number) {
   const html = `

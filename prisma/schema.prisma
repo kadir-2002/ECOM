@@ -34,6 +34,7 @@ model User {
   cart      Cart?
   orders    Order[] 
   addresses Address[]
+  discountCodes DiscountCode[]
 }
 
 model Profile {
@@ -119,6 +120,7 @@ model Cart {
   updatedAt DateTime   @updatedAt
   reminderCount  Int       @default(0)
   lastReminderAt DateTime?
+  discountCodes DiscountCode[]
 }
 
 model CartItem {
@@ -210,4 +212,18 @@ model Payment {
   createdAt      DateTime       @default(now())
 
   order          Order?
+}
+
+model DiscountCode {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  userId    Int
+  cartId    Int?
+  discount  Int
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  cart      Cart?    @relation(fields: [cartId], references: [id])
 }

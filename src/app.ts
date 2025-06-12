@@ -13,6 +13,7 @@ import cartRoutes from './routes/cart.route';
 import addressRoutes from './routes/address.route';
 import orderRoutes from './routes/order.route';
 import paymentRoutes from './routes/payment.route';
+import discountCodeRoutes from './routes/discountCode.routes';
 import helmet from 'helmet';
 import { errorHandler } from './middlewares/errorHandler';
 import './jobs/abandonedCartReminder'; 
@@ -38,6 +39,8 @@ app.use('/cart', cartRoutes);
 app.use('/address', addressRoutes);
 app.use('/order', orderRoutes);
 app.use('/payment', paymentRoutes);
+app.use('/discount-codes', discountCodeRoutes);
+
 
 app.use(errorHandler);
 

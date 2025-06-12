@@ -47,10 +47,10 @@ export const updateAddress = async (req: CustomRequest, res: Response) => {
 export const deleteAddress = async (req: CustomRequest, res: Response) => {
   const { id } = req.params;
   try {
-    await prisma.address.delete({
+    const address = await prisma.address.delete({
       where: { id: Number(id) },
     });
-    res.status(204).send("deleted");
+    res.status(200).json({ message: 'address deleted', address: address });
   } catch (error) {
     res.status(500).json({ message: 'Failed to delete address', error });
   }

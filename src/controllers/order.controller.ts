@@ -112,3 +112,43 @@ export const getUserOrders = async (req: CustomRequest, res: Response) => {
     res.status(500).json({ message: 'Failed to fetch orders', error });
   }
 };
+
+// Get a specific order by ID for the logged-in user
+export const getOrderById = async (req: CustomRequest, res: Response) => {
+  const userId = req.user?.userId;
+  const { id } = req.params;
+
+  if (!userId) {
+     res.status(401).json({ message: 'Unauthorized' });
+     return;
+  }
+
+  try {
+    const order = await prisma.order.findFirst({
+      where: {
+        id: Number(id),
+        userId,
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+            variant: true,
+          },
+        },
+        payment: true,
+        address: true,
+      },
+    });
+
+    if (!order) {
+       res.status(404).json({ message: 'Order not found' });
+        return;
+    }
+
+    res.json(order);
+  } catch (error) {
+    console.error('Fetch order by ID failed:', error);
+    res.status(500).json({ message: 'Failed to fetch order', error });
+  }
+};
