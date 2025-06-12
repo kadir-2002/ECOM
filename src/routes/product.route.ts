@@ -16,13 +16,13 @@ import { authenticate } from '../middlewares/authenticate';
 import { authorizeAdmin } from '../middlewares/authorizaAdmin';
 import { uploadMemory } from '../upload/multerCloudinary';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // Public routes
 router.get('/', getAllProducts);
 router.get('/info/:slug', getProductBySlug);
 
-router.use('/:id/variant', variantRoutes);
+router.use('/:productId/variant', variantRoutes);
 
 
 router.get('/best-selling', getBestSellingProducts);

@@ -5,15 +5,18 @@ import {
   getVariantImageById,
   updateVariantImage,
   deleteVariantImage,
+  getAllVariantImagesForProduct,
 } from '../controllers/variantImage.controller';
 import { upload } from '../upload/multer';
 import { uploadMemory } from '../upload/multerCloudinary';
 import { authenticate } from '../middlewares/authenticate';
 import { authorizeAdmin } from '../middlewares/authorizaAdmin';
 
-const router = Router();
+const router = Router({ mergeParams: true });
 
 // Public routes
+
+router.get('/all', getAllVariantImagesForProduct); // this comes before `/:id`
 router.get('/', getAllVariantImages);
 router.get('/:variantId', getVariantImageById);
 

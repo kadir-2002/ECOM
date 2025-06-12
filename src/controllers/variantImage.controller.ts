@@ -137,7 +137,8 @@ export const deleteVariantImage = async (req: Request, res: Response) => {
 };
 
 export const getAllVariantImages = async (req: Request, res: Response) => {
-  const variantId = req.query.variantId ? Number(req.query.variantId) : undefined;
+  // const variantId = req.query.variantId ? Number(req.query.variantId) : undefined;
+  const variantId = Number(req.params.variantId);
 
   try {
     const images = await prisma.variantImage.findMany({
@@ -178,3 +179,49 @@ export const getVariantImageById = async (req: Request, res: Response) => {
   }
 };
 
+export const getAllVariantImagesForProduct = async (req: Request, res: Response) => {
+  const productId = Number(req.params.productId);
+  const variantId = Number(req.params.variantId);
+  
+  console.log('Incoming Params:', req.params);
+
+  if (isNaN(productId) || isNaN(variantId)) {
+     res.status(400).json({ message: 'Invalid productId or variantId' });
+     return;
+  }
+
+  try {
+    const variant = await prisma.variant.findFirst({
+      where: {
+        id: variantId,
+        productId,
+        isDeleted: false,
+        product: { isDeleted: false },
+      },
+      include: {
+        product: true,
+      },
+    });
+
+    if (!variant) {
+       res.status(404).json({ message: 'Variant not found for the specified product' });
+       return;
+    }
+
+    const images = await prisma.variantImage.findMany({
+      where: { variantId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.status(200).json({
+      productId,
+      variantId,
+      variantName: variant.name,
+      imageCount: images.length,
+      images,
+    });
+  } catch (error) {
+    console.error('Error fetching variant images for product:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
