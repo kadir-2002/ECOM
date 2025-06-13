@@ -4,6 +4,7 @@ import { CustomRequest } from '../middlewares/authenticate';
 import { OrderStatus, PaymentStatus } from '@prisma/client';
 import dayjs from 'dayjs';
 import PDFDocument from 'pdfkit';
+import { sendOrderConfirmationEmail } from '../email/sendOrderConfirmationEmail';
 
 
 type OrderItemInput = {
@@ -54,10 +55,14 @@ export const createOrder = async (req: CustomRequest, res: Response) => {
       };
     });
 
+    const paymentStatus = paymentMethod.toUpperCase() === "RAZORPAY" 
+      ? PaymentStatus.SUCCESS 
+      : PaymentStatus.PENDING;
+
     const payment = await prisma.payment.create({
       data: {
         method: paymentMethod,
-        status: PaymentStatus.PENDING,
+        status: paymentStatus,
       },
     });
 
@@ -73,10 +78,34 @@ export const createOrder = async (req: CustomRequest, res: Response) => {
         },
       },
       include: {
-        items: true,
+        items: {
+          include: {
+            product: true,
+            variant: true,
+          },
+        },
         payment: true,
+        user: {
+          include: {
+            profile: true,
+          },
+        },
       },
     });
+
+    // Send order confirmation email
+    await sendOrderConfirmationEmail(
+      order.user.email,
+      order.user.profile?.firstName || 'Customer',
+      `COM-${order.id}`,
+      order.items.map(i => ({
+        name: i.variant?.name || i.product?.name || 'Product',
+        quantity: i.quantity,
+        price: i.price,
+      })),
+      order.totalAmount,
+      order.payment?.method || 'N/A'
+    );
 
     res.status(201).json(order);
   } catch (error) {
