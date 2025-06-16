@@ -288,7 +288,7 @@ export const getSingleOrder = async (req: CustomRequest, res: Response) => {
             name: item.variant?.name || item.product?.name || 'Unnamed Product',
             SKU: `SKU-${item.variantId || item.productId || item.id}`,
             image: item.variant?.images[0]?.url || item.product?.imageUrl || '',
-            unit_price: item.price.toFixed(2),
+            unit_price: item.price,
             quantity: item.quantity,
             category: item.product?.category?.name || 'General',
             specification: item.variant?.name || '',
@@ -342,13 +342,14 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       return;
     }
 
-    // Subtotal and Final Amount
-    // const subtotal = order.items.reduce(
-    //   (sum, item) => sum + item.price * item.quantity,
-    //   0
-    // );
-    const subtotal = order.subtotal!
-    const finalAmount = subtotal - (order.discountAmount || 0);
+    // ✅ Fallback to calculated subtotal if null
+    const subtotal = order.subtotal ?? order.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
+    const discountAmount = order.discountAmount ?? 0;
+    const finalAmount = subtotal - discountAmount;
 
     // PDF Setup
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -426,12 +427,12 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       .text(`₹${subtotal}`, tableLeft + 380, y, { width: 100, align: 'right' });
 
     // Discount
-    if (order.discountAmount && order.discountAmount > 0) {
+    if (discountAmount > 0) {
       y += 20;
       doc
         .fillColor('red')
         .text('Discount:', tableLeft + 270, y, { width: 100, align: 'right' })
-        .text(`- ₹${order.discountAmount}`, tableLeft + 380, y, { width: 100, align: 'right' });
+        .text(`₹${Math.abs(discountAmount)}`, tableLeft + 380, y, { width: 100, align: 'right' });
     }
 
     // Grand Total
