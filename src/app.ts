@@ -22,12 +22,8 @@ import './jobs/cancelPendingOrders';
 dotenv.config();
 const app = express();
 
+app.use(cors());
 app.use(helmet());
-app.use(cors(
-    {
-  origin: ['https://mymango-new-wz5s.vercel.app'],
-}
-));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
