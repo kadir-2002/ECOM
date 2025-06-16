@@ -227,3 +227,10 @@ model DiscountCode {
   user      User     @relation(fields: [userId], references: [id])
   cart      Cart?    @relation(fields: [cartId], references: [id])
 }
+
+model DiscountRule {
+  id        Int      @id @default(autoincrement())
+  percentage Int     // e.g., 10 for 10%
+  minItems  Int      // e.g., 5 items minimum
+  createdAt DateTime @default(now())
+}

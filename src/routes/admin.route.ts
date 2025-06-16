@@ -15,6 +15,7 @@ import { authorizeAdmin } from '../middlewares/authorizaAdmin';
 import { upload } from '../upload/multer';
 import { uploadCsv } from '../upload/multerCsv';
 import { uploadMemory } from '../upload/multerCloudinary';
+import { createDiscountRule } from '../controllers/discount.controller';
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.get('/export/products', exportProductsToCsv);
 router.get('/export/variants', exportVariantsToCSV);
 router.post('/import/products', uploadCsv.single('file'), importProductsFromCSV);
 router.post('/import/variants', uploadCsv.single('file'), importVariantsFromCSV);
+router.post('/discounts', createDiscountRule);
 
 export default router;

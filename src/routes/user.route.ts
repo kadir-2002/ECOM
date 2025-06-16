@@ -10,6 +10,7 @@ import {
 
 import { authenticate } from '../middlewares/authenticate';
 import { uploadMemory } from '../upload/multerCloudinary';
+import { getDiscountRules } from '../controllers/discount.controller';
 
 
 const router = Router();
@@ -23,5 +24,5 @@ router.patch('/restore', restoreOwnAccount);
 router.patch('/update', uploadMemory.single('image'), updateOwnProfile);
 router.patch('/change-password', changePassword);
 router.get('/details', getMe);
-
+router.get('/discounts', getDiscountRules);
 export default router;

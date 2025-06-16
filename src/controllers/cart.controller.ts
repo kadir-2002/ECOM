@@ -4,6 +4,33 @@ import prisma from '../db/prisma';
 import { CustomRequest } from '../middlewares/authenticate';
 
 // GET /cart
+// export const getCart = async (req: CustomRequest, res: Response) => {
+//   const userId = req.user?.userId;
+//   if (!userId) {
+//     res.status(401).json({ message: 'Unauthorized' });
+//     return;
+//   }
+
+//   const cart = await prisma.cart.findUnique({
+//     where: { userId },
+//     include: {
+//       items: {
+//         include: {
+//           product: true,
+//           variant: {
+//             include: {
+//               images: true,
+//             },
+//           },
+//         },
+//       },
+//     },
+//   });
+
+//   res.json(cart);
+// };
+
+// GET /cart
 export const getCart = async (req: CustomRequest, res: Response) => {
   const userId = req.user?.userId;
   if (!userId) {
@@ -27,7 +54,25 @@ export const getCart = async (req: CustomRequest, res: Response) => {
     },
   });
 
-  res.json(cart);
+  if (!cart) {
+     res.json({ cart: null, discount: 0 });
+     return;
+  }
+
+  // Count items in the cart
+  const itemCount = cart.items.reduce((total, item) => total + item.quantity, 0);
+
+  // Fetch the latest discount rule
+  const discountRule = await prisma.discountRule.findFirst({
+    orderBy: { createdAt: 'desc' },
+  });
+
+  let discount = 0;
+  if (discountRule && itemCount >= discountRule.minItems) {
+    discount = discountRule.percentage;
+  }
+
+  res.json({ cart, discount });
 };
 
 
