@@ -177,6 +177,9 @@ model Order {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
+  discountAmount  Float?         // discount applied
+  discountCode    String?        // optional code/label
+
   payment         Payment?     @relation(fields: [paymentId], references: [id])
   paymentId       Int?         @unique
 

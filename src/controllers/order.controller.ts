@@ -6,7 +6,6 @@ import dayjs from 'dayjs';
 import PDFDocument from 'pdfkit';
 import { sendOrderConfirmationEmail } from '../email/sendOrderConfirmationEmail';
 
-
 type OrderItemInput = {
   productId?: number;
   variantId?: number;
@@ -17,21 +16,26 @@ type OrderItemInput = {
 // Create new order for authenticated user
 export const createOrder = async (req: CustomRequest, res: Response) => {
   const userId = req.user?.userId;
+
   const {
     items,
     addressId,
     totalAmount,
     paymentMethod,
+    discountAmount = 0,
+    discountCode = '',
   }: {
     items: OrderItemInput[];
     addressId: number;
     totalAmount: number;
     paymentMethod: string;
+    discountAmount?: number;
+    discountCode?: string;
   } = req.body;
 
   if (!userId) {
-     res.status(401).json({ message: 'Unauthorized' });
-     return
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
   }
 
   try {
@@ -55,9 +59,13 @@ export const createOrder = async (req: CustomRequest, res: Response) => {
       };
     });
 
-    const paymentStatus = paymentMethod.toUpperCase() === "RAZORPAY" 
-      ? PaymentStatus.SUCCESS 
-      : PaymentStatus.PENDING;
+    // Calculate final amount after discount (never below zero)
+    const finalAmount = Math.max(totalAmount - discountAmount, 0);
+
+    const paymentStatus =
+      paymentMethod.toUpperCase() === 'RAZORPAY'
+        ? PaymentStatus.SUCCESS
+        : PaymentStatus.PENDING;
 
     const payment = await prisma.payment.create({
       data: {
@@ -65,12 +73,13 @@ export const createOrder = async (req: CustomRequest, res: Response) => {
         status: paymentStatus,
       },
     });
-
     const order = await prisma.order.create({
       data: {
         userId,
         addressId,
         totalAmount,
+        discountAmount,
+        discountCode,
         status: OrderStatus.PENDING,
         paymentId: payment.id,
         items: {
@@ -98,16 +107,16 @@ export const createOrder = async (req: CustomRequest, res: Response) => {
       order.user.email,
       order.user.profile?.firstName || 'Customer',
       `COM-${order.id}`,
-      order.items.map(i => ({
+      order.items.map((i) => ({
         name: i.variant?.name || i.product?.name || 'Product',
         quantity: i.quantity,
         price: i.price,
       })),
-      order.totalAmount,
+      finalAmount,
       order.payment?.method || 'N/A'
     );
 
-    res.status(201).json(order);
+    res.status(201).json({ ...order, finalAmount });
   } catch (error) {
     console.error('Create order failed:', error);
     res.status(500).json({ message: 'Failed to create order', error });
@@ -118,8 +127,8 @@ export const createOrder = async (req: CustomRequest, res: Response) => {
 export const getUserOrders = async (req: CustomRequest, res: Response) => {
   const userId = req.user?.userId;
   if (!userId) {
-     res.status(401).json({ message: 'Unauthorized' });
-     return
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
   }
 
   try {
@@ -151,8 +160,8 @@ export const getOrderById = async (req: CustomRequest, res: Response) => {
   const { id } = req.params;
 
   if (!userId) {
-     res.status(401).json({ message: 'Unauthorized' });
-     return;
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
   }
 
   try {
@@ -174,8 +183,8 @@ export const getOrderById = async (req: CustomRequest, res: Response) => {
     });
 
     if (!order) {
-       res.status(404).json({ message: 'Order not found' });
-        return;
+      res.status(404).json({ message: 'Order not found' });
+      return;
     }
 
     res.json(order);
@@ -196,7 +205,9 @@ function formatAddress(address: any): string {
     address.state,
     address.country || 'India',
     address.pincode,
-  ].filter(Boolean).join(', ');
+  ]
+    .filter(Boolean)
+    .join(', ');
 }
 
 // GET single order info as JSON invoice response
@@ -206,17 +217,16 @@ export const getSingleOrder = async (req: CustomRequest, res: Response) => {
     const orderIdStr = req.params.id;
 
     if (!userId) {
-       res.status(401).json({ message: 'Unauthorized' });
-       return
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
     }
 
     // Validate orderId param as number
     const orderId = Number(orderIdStr);
     if (!orderIdStr || isNaN(orderId)) {
-       res.status(400).json({ message: 'Invalid or missing order ID' });
-       return
+      res.status(400).json({ message: 'Invalid or missing order ID' });
+      return;
     }
-    console.log(orderIdStr, orderId);
 
     const order = await prisma.order.findFirst({
       where: { id: orderId, userId },
@@ -234,9 +244,10 @@ export const getSingleOrder = async (req: CustomRequest, res: Response) => {
     });
 
     if (!order) {
-       res.status(404).json({ message: 'Order not found' });
-       return
+      res.status(404).json({ message: 'Order not found' });
+      return;
     }
+    const finalAmount = order.totalAmount - (order.discountAmount || 0);
 
     const invoiceResponse = {
       message: '',
@@ -258,17 +269,9 @@ export const getSingleOrder = async (req: CustomRequest, res: Response) => {
           },
           order_info: {
             sub_total: order.totalAmount,
-            abendoned_price: 0,
-            tax: 0,
-            discount: 0,
-            discount_coupon_type: '',
-            discount_coupon_code: '',
-            discount_coupon_value: 0,
-            discount_speding_title: '',
-            discount_speding_discount_percentage: '',
-            discount_speding_discount_price: '',
-            delivery_charge: 0,
-            final_total: order.totalAmount,
+            discount: order.discountAmount || 0,
+            discount_coupon_code: order.discountCode || '',
+            final_total: finalAmount,
             order_status: order.status,
             invoice_url: `/order/invoice?id=COM-${order.id}-${order.user.profile?.firstName}`,
             created_at_formatted: dayjs(order.createdAt).format('DD/MM/YYYY, hh:mmA'),
@@ -279,7 +282,7 @@ export const getSingleOrder = async (req: CustomRequest, res: Response) => {
             payment_transaction_id: order.payment?.transactionId || '',
             payment_type: order.payment?.method || 'N/A',
           },
-          items: order.items.map(item => ({
+          items: order.items.map((item) => ({
             id: item.id,
             variant_id: item.variantId || null,
             name: item.variant?.name || item.product?.name || 'Unnamed Product',
@@ -339,63 +342,87 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       return;
     }
 
-    const doc = new PDFDocument({ margin: 50 });
+    // Calculate final amount after discount (assuming order.totalAmount exists)
+    const totalAmount = order.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+    const finalAmount = totalAmount - (order.discountAmount || 0);
+
+    // Setup PDF document
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=invoice-${order.id}.pdf`);
     doc.pipe(res);
 
     // Colors
     const primaryColor = '#007bff'; // blue
-    const headerBgColor = '#e9ecef'; // light gray for header background
+    const headerBgColor = '#e9ecef'; // light gray header background
     const rowAltColor = '#f8f9fa'; // very light gray for alternating rows
 
-    // ==== Header ====
+    // ======= LOGO =======
+    // Replace with your logo path or remove if not needed
+    try {
+      doc.image('path/to/logo.png', 50, 45, { width: 100 });
+    } catch (e) {
+      // Logo loading failed, continue without it
+    }
+
+    // ======= HEADER =======
     doc
       .fillColor(primaryColor)
-      .fontSize(20)
-      .text('INVOICE', { align: 'center' })
-      .moveDown();
-
-    doc.fillColor('black');
-
-    // ==== Customer Info ====
-    doc.fontSize(12)
-      .text(`Invoice ID: COM-${order.id}-${order.user.profile?.firstName || ''}`)
-      .text(`Customer: ${order.user.profile?.firstName || ''} ${order.user.profile?.lastName || ''}`)
-      .text(`Email: ${order.user.email}`)
-      .text(`Phone: ${order.address.phone}`)
-      .text(`Address: ${formatAddress(order.address)}`)
-      .text(`Date: ${new Date(order.createdAt).toLocaleString()}`)
-      .text(`Payment Method: ${order.payment?.method || 'N/A'}`)
-      .text(`Order Status: ${order.status}`)
-      .moveDown();
-
-    // ==== Items Table Header Background ====
-    const tableTop = doc.y;
-    doc.rect(50, tableTop, 500, 20).fill(headerBgColor);
-
-    // Header Text in Bold
-    doc
-      .fillColor('black')
       .font('Helvetica-Bold')
-      .fontSize(12)
-      .text('Item', 55, tableTop + 5)
-      .text('Qty', 255, tableTop + 5)
-      .text('Unit Price', 320, tableTop + 5)
-      .text('Total', 420, tableTop + 5);
+      .fontSize(26)
+      .text('INVOICE', 50, 140);
 
-    doc.moveDown();
+    // Reset color and font for customer info
+    doc.fillColor('black').font('Helvetica').fontSize(12);
 
-    // Reset font and fill color for rows
-    doc.font('Helvetica').fontSize(12);
+    // ======= CUSTOMER INFO =======
+    const startCustomerInfoY = 180;
+    doc.text(`Invoice ID: COM-${order.id}-${order.user.profile?.firstName || ''}`, 50, startCustomerInfoY);
+    doc.text(`Customer: ${order.user.profile?.firstName || ''} ${order.user.profile?.lastName || ''}`, 50, startCustomerInfoY + 15);
+    doc.text(`Email: ${order.user.email}`, 50, startCustomerInfoY + 30);
+    doc.text(`Phone: ${order.address.phone}`, 50, startCustomerInfoY + 45);
+    doc.text(`Address: ${formatAddress(order.address)}`, 50, startCustomerInfoY + 60, { width: 500 });
+    doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`, 50, startCustomerInfoY + 90);
+    doc.text(`Payment Method: ${order.payment?.method || 'N/A'}`, 50, startCustomerInfoY + 105);
+    doc.text(`Order Status: ${order.status}`, 50, startCustomerInfoY + 120);
 
-    // ==== Table Rows with alternating background colors ====
-    let y = tableTop + 20;
+    // ======= TABLE HEADER =======
+    const tableTop = startCustomerInfoY + 160;
+    const tableLeft = 50;
+    const tableWidth = 500;
+    const rowHeight = 25;
+
+    // Header background
+    doc.rect(tableLeft, tableTop, tableWidth, rowHeight).fill(headerBgColor);
+
+    // Header text (bold and colored)
+    doc
+      .fillColor(primaryColor)
+      .font('Helvetica-Bold')
+      .fontSize(12);
+
+    doc.text('Item', tableLeft + 10, tableTop + 7);
+    doc.text('Qty', tableLeft + 210, tableTop + 7, { width: 50, align: 'right' });
+    doc.text('Unit Price', tableLeft + 270, tableTop + 7, { width: 100, align: 'right' });
+    doc.text('Total', tableLeft + 380, tableTop + 7, { width: 100, align: 'right' });
+
+    // Reset font for rows
+    doc.fillColor('black').font('Helvetica').fontSize(12);
+
+    // ======= TABLE ROWS =======
+    let y = tableTop + rowHeight;
     order.items.forEach((item, index) => {
       const isEven = index % 2 === 0;
+
+      // Alternate row background
       if (isEven) {
-        doc.rect(50, y, 500, 20).fill(rowAltColor);
+        doc.rect(tableLeft, y, tableWidth, rowHeight).fill(rowAltColor);
       }
+
       doc.fillColor('black');
 
       const name = item.variant?.name || item.product?.name || 'Unnamed Product';
@@ -403,35 +430,59 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       const unitPrice = item.price;
       const totalPrice = qty * unitPrice;
 
-      doc.text(name, 55, y + 5);
-      doc.text(qty.toString(), 255, y + 5);
-      doc.text(`₹${unitPrice.toFixed(2)}`, 320, y + 5);
-      doc.text(`₹${totalPrice.toFixed(2)}`, 420, y + 5);
+      doc.text(name, tableLeft + 10, y + 7);
+      doc.text(qty.toString(), tableLeft + 210, y + 7, { width: 50, align: 'right' });
+      doc.text(`₹${unitPrice.toFixed(2)}`, tableLeft + 270, y + 7, { width: 100, align: 'right' });
+      doc.text(`₹${totalPrice.toFixed(2)}`, tableLeft + 380, y + 7, { width: 100, align: 'right' });
 
-      y += 20;
+      y += rowHeight;
     });
 
-    // Draw line below table
+    // Draw border around the table
     doc
       .strokeColor(primaryColor)
       .lineWidth(1)
-      .moveTo(50, y)
-      .lineTo(550, y)
+      .rect(tableLeft, tableTop, tableWidth, y - tableTop)
       .stroke();
 
-    doc.moveDown();
+    // ======= DISCOUNT ROW =======
+    // if (order.discountAmount && order.discountAmount > 0) {
+    //   y += 30;
+    //   doc.font('Helvetica-Bold').fillColor(primaryColor);
+    //   doc.text('Discount:', tableLeft + 270, y, { width: 100, align: 'right' });
+    //   doc.text(`- ₹${order.discountAmount.toFixed(2)}`, tableLeft + 380, y, { width: 100, align: 'right' });
+    // }
 
-    // ==== Grand Total ====
+    // After table rows and table border, before grand total
+    if (order.discountAmount && order.discountAmount > 0) {
+      y += 30;
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(14)
+        .fillColor('red') // Make discount stand out in red
+        .text('Discount:', tableLeft + 270, y, { width: 100, align: 'right' });
+      doc
+        .text(`- ₹${order.discountAmount.toFixed(2)}`, tableLeft + 380, y, { width: 100, align: 'right' });
+    }
+
+    // ======= GRAND TOTAL =======
+    y += 40;
     doc
       .font('Helvetica-Bold')
-      .fontSize(14)
+      .fontSize(16)
       .fillColor(primaryColor)
-      .text(`Grand Total: ₹${order.totalAmount.toFixed(2)}`, { align: 'right' });
+      .text(`Grand Total: ₹${finalAmount.toFixed(2)}`, tableLeft, y, { align: 'right', width: tableWidth });
 
+    // ======= FOOTER =======
+    doc
+      .fontSize(10)
+      .fillColor('gray')
+      .text('Thank you for your purchase!', tableLeft, 770, { align: 'center', width: tableWidth });
+
+    // Finish PDF and send to client
     doc.end();
   } catch (error) {
-    console.error('PDF generation failed:', error);
-    res.status(500).send('Internal Server Error');
+    console.error('Invoice PDF generation failed:', error);
+    res.status(500).send('Failed to generate invoice PDF');
   }
 };
-
