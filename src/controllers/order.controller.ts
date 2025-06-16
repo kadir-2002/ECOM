@@ -408,8 +408,8 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
         .fillColor('black')
         .text(name, tableLeft + 10, y + 7)
         .text(qty.toString(), tableLeft + 210, y + 7, { width: 50, align: 'right' })
-        .text(`₹${unitPrice.toFixed(2)}`, tableLeft + 270, y + 7, { width: 100, align: 'right' })
-        .text(`₹${total.toFixed(2)}`, tableLeft + 380, y + 7, { width: 100, align: 'right' });
+        .text(`₹${unitPrice}`, tableLeft + 270, y + 7, { width: 100, align: 'right' })
+        .text(`₹${total}`, tableLeft + 380, y + 7, { width: 100, align: 'right' });
 
       y += rowHeight;
     });
@@ -423,7 +423,7 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       .font('Helvetica-Bold')
       .fillColor('black')
       .text('Subtotal:', tableLeft + 270, y, { width: 100, align: 'right' })
-      .text(`₹${subtotal.toFixed(2)}`, tableLeft + 380, y, { width: 100, align: 'right' });
+      .text(`₹${subtotal}`, tableLeft + 380, y, { width: 100, align: 'right' });
 
     // Discount
     if (order.discountAmount && order.discountAmount > 0) {
@@ -431,7 +431,7 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       doc
         .fillColor('red')
         .text('Discount:', tableLeft + 270, y, { width: 100, align: 'right' })
-        .text(`- ₹${order.discountAmount.toFixed(2)}`, tableLeft + 380, y, { width: 100, align: 'right' });
+        .text(`- ₹${order.discountAmount}`, tableLeft + 380, y, { width: 100, align: 'right' });
     }
 
     // Grand Total
@@ -440,7 +440,7 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       .font('Helvetica-Bold')
       .fontSize(14)
       .fillColor(primaryColor)
-      .text(`Grand Total: ₹${finalAmount.toFixed(2)}`, tableLeft, y, { align: 'right', width: tableWidth });
+      .text(`Grand Total: ₹${finalAmount}`, tableLeft, y, { align: 'right', width: tableWidth });
 
     // Footer
     doc
