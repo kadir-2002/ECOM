@@ -342,144 +342,112 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
       return;
     }
 
-    // Calculate final amount after discount (assuming order.totalAmount exists)
-    const totalAmount = order.items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
-    );
-    const finalAmount = totalAmount - (order.discountAmount || 0);
+    // Subtotal and Final Amount
+    // const subtotal = order.items.reduce(
+    //   (sum, item) => sum + item.price * item.quantity,
+    //   0
+    // );
+    const subtotal = order.subtotal
+    const finalAmount = subtotal - (order.discountAmount || 0);
 
-    // Setup PDF document
+    // PDF Setup
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
-
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=invoice-${order.id}.pdf`);
     doc.pipe(res);
 
-    // Colors
-    const primaryColor = '#007bff'; // blue
-    const headerBgColor = '#e9ecef'; // light gray header background
-    const rowAltColor = '#f8f9fa'; // very light gray for alternating rows
+    const primaryColor = '#007bff';
+    const headerBgColor = '#e9ecef';
+    const rowAltColor = '#f8f9fa';
 
-    // ======= LOGO =======
-    // Replace with your logo path or remove if not needed
-    try {
-      doc.image('path/to/logo.png', 50, 45, { width: 100 });
-    } catch (e) {
-      // Logo loading failed, continue without it
-    }
-
-    // ======= HEADER =======
-    doc
-      .fillColor(primaryColor)
-      .font('Helvetica-Bold')
-      .fontSize(26)
-      .text('INVOICE', 50, 140);
-
-    // Reset color and font for customer info
+    // Header
+    doc.fillColor(primaryColor).font('Helvetica-Bold').fontSize(26).text('INVOICE', 50, 140);
     doc.fillColor('black').font('Helvetica').fontSize(12);
 
-    // ======= CUSTOMER INFO =======
-    const startCustomerInfoY = 180;
-    doc.text(`Invoice ID: COM-${order.id}-${order.user.profile?.firstName || ''}`, 50, startCustomerInfoY);
-    doc.text(`Customer: ${order.user.profile?.firstName || ''} ${order.user.profile?.lastName || ''}`, 50, startCustomerInfoY + 15);
-    doc.text(`Email: ${order.user.email}`, 50, startCustomerInfoY + 30);
-    doc.text(`Phone: ${order.address.phone}`, 50, startCustomerInfoY + 45);
-    doc.text(`Address: ${formatAddress(order.address)}`, 50, startCustomerInfoY + 60, { width: 500 });
-    doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`, 50, startCustomerInfoY + 90);
-    doc.text(`Payment Method: ${order.payment?.method || 'N/A'}`, 50, startCustomerInfoY + 105);
-    doc.text(`Order Status: ${order.status}`, 50, startCustomerInfoY + 120);
+    // Customer Info
+    const infoY = 180;
+    doc.text(`Invoice ID: COM-${order.id}-${order.user.profile?.firstName || ''}`, 50, infoY);
+    doc.text(`Customer: ${order.user.profile?.firstName || ''} ${order.user.profile?.lastName || ''}`, 50, infoY + 15);
+    doc.text(`Email: ${order.user.email}`, 50, infoY + 30);
+    doc.text(`Phone: ${order.address.phone}`, 50, infoY + 45);
+    doc.text(`Address: ${formatAddress(order.address)}`, 50, infoY + 60, { width: 500 });
+    doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`, 50, infoY + 90);
+    doc.text(`Payment Method: ${order.payment?.method || 'N/A'}`, 50, infoY + 105);
+    doc.text(`Order Status: ${order.status}`, 50, infoY + 120);
 
-    // ======= TABLE HEADER =======
-    const tableTop = startCustomerInfoY + 160;
+    // Table Headers
+    const tableTop = infoY + 160;
     const tableLeft = 50;
     const tableWidth = 500;
     const rowHeight = 25;
 
-    // Header background
     doc.rect(tableLeft, tableTop, tableWidth, rowHeight).fill(headerBgColor);
-
-    // Header text (bold and colored)
     doc
       .fillColor(primaryColor)
       .font('Helvetica-Bold')
-      .fontSize(12);
+      .fontSize(12)
+      .text('Item', tableLeft + 10, tableTop + 7)
+      .text('Qty', tableLeft + 210, tableTop + 7, { width: 50, align: 'right' })
+      .text('Unit Price', tableLeft + 270, tableTop + 7, { width: 100, align: 'right' })
+      .text('Total', tableLeft + 380, tableTop + 7, { width: 100, align: 'right' });
 
-    doc.text('Item', tableLeft + 10, tableTop + 7);
-    doc.text('Qty', tableLeft + 210, tableTop + 7, { width: 50, align: 'right' });
-    doc.text('Unit Price', tableLeft + 270, tableTop + 7, { width: 100, align: 'right' });
-    doc.text('Total', tableLeft + 380, tableTop + 7, { width: 100, align: 'right' });
-
-    // Reset font for rows
-    doc.fillColor('black').font('Helvetica').fontSize(12);
-
-    // ======= TABLE ROWS =======
+    // Table Rows
     let y = tableTop + rowHeight;
+    doc.font('Helvetica').fontSize(12);
     order.items.forEach((item, index) => {
-      const isEven = index % 2 === 0;
-
-      // Alternate row background
-      if (isEven) {
+      if (index % 2 === 0) {
         doc.rect(tableLeft, y, tableWidth, rowHeight).fill(rowAltColor);
       }
-
-      doc.fillColor('black');
 
       const name = item.variant?.name || item.product?.name || 'Unnamed Product';
       const qty = item.quantity;
       const unitPrice = item.price;
-      const totalPrice = qty * unitPrice;
+      const total = qty * unitPrice;
 
-      doc.text(name, tableLeft + 10, y + 7);
-      doc.text(qty.toString(), tableLeft + 210, y + 7, { width: 50, align: 'right' });
-      doc.text(`₹${unitPrice.toFixed(2)}`, tableLeft + 270, y + 7, { width: 100, align: 'right' });
-      doc.text(`₹${totalPrice.toFixed(2)}`, tableLeft + 380, y + 7, { width: 100, align: 'right' });
+      doc
+        .fillColor('black')
+        .text(name, tableLeft + 10, y + 7)
+        .text(qty.toString(), tableLeft + 210, y + 7, { width: 50, align: 'right' })
+        .text(`₹${unitPrice.toFixed(2)}`, tableLeft + 270, y + 7, { width: 100, align: 'right' })
+        .text(`₹${total.toFixed(2)}`, tableLeft + 380, y + 7, { width: 100, align: 'right' });
 
       y += rowHeight;
     });
 
-    // Draw border around the table
+    // Table Border
+    doc.strokeColor(primaryColor).lineWidth(1).rect(tableLeft, tableTop, tableWidth, y - tableTop).stroke();
+
+    // Subtotal
+    y += 20;
     doc
-      .strokeColor(primaryColor)
-      .lineWidth(1)
-      .rect(tableLeft, tableTop, tableWidth, y - tableTop)
-      .stroke();
+      .font('Helvetica-Bold')
+      .fillColor('black')
+      .text('Subtotal:', tableLeft + 270, y, { width: 100, align: 'right' })
+      .text(`₹${subtotal.toFixed(2)}`, tableLeft + 380, y, { width: 100, align: 'right' });
 
-    // ======= DISCOUNT ROW =======
-    // if (order.discountAmount && order.discountAmount > 0) {
-    //   y += 30;
-    //   doc.font('Helvetica-Bold').fillColor(primaryColor);
-    //   doc.text('Discount:', tableLeft + 270, y, { width: 100, align: 'right' });
-    //   doc.text(`- ₹${order.discountAmount.toFixed(2)}`, tableLeft + 380, y, { width: 100, align: 'right' });
-    // }
-
-    // After table rows and table border, before grand total
+    // Discount
     if (order.discountAmount && order.discountAmount > 0) {
-      y += 30;
+      y += 20;
       doc
-        .font('Helvetica-Bold')
-        .fontSize(14)
-        .fillColor('red') // Make discount stand out in red
-        .text('Discount:', tableLeft + 270, y, { width: 100, align: 'right' });
-      doc
+        .fillColor('red')
+        .text('Discount:', tableLeft + 270, y, { width: 100, align: 'right' })
         .text(`- ₹${order.discountAmount.toFixed(2)}`, tableLeft + 380, y, { width: 100, align: 'right' });
     }
 
-    // ======= GRAND TOTAL =======
-    y += 40;
+    // Grand Total
+    y += 30;
     doc
       .font('Helvetica-Bold')
-      .fontSize(16)
+      .fontSize(14)
       .fillColor(primaryColor)
       .text(`Grand Total: ₹${finalAmount.toFixed(2)}`, tableLeft, y, { align: 'right', width: tableWidth });
 
-    // ======= FOOTER =======
+    // Footer
     doc
       .fontSize(10)
       .fillColor('gray')
       .text('Thank you for your purchase!', tableLeft, 770, { align: 'center', width: tableWidth });
 
-    // Finish PDF and send to client
     doc.end();
   } catch (error) {
     console.error('Invoice PDF generation failed:', error);

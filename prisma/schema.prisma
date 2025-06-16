@@ -176,7 +176,7 @@ model Order {
   status          OrderStatus  @default(PENDING)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
-
+  subtotal        Float?        // total before discount
   discountAmount  Float?         // discount applied
   discountCode    String?        // optional code/label
 
