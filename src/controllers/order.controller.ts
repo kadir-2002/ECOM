@@ -347,7 +347,7 @@ export const generateInvoicePDF = async (req: Request, res: Response) => {
     //   (sum, item) => sum + item.price * item.quantity,
     //   0
     // );
-    const subtotal = order.subtotal
+    const subtotal = order.subtotal!
     const finalAmount = subtotal - (order.discountAmount || 0);
 
     // PDF Setup
