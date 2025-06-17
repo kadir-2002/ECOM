@@ -15,7 +15,7 @@ const router = Router();
 router.get('/', getBanners);
 
 // Admin-only routes
-// router.use(authenticate, authorizeAdmin);
+router.use(authenticate, authorizeAdmin);
 
 router.post('/', uploadMemory.single('image'), createBanner);
 router.patch('/:id', uploadMemory.single('image'), updateBanner);
