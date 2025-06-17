@@ -237,3 +237,17 @@ model DiscountRule {
   minItems  Int      // e.g., 5 items minimum
   createdAt DateTime @default(now())
 }
+
+model HomepageBanner {
+  id              Int      @id @default(autoincrement())
+  heading         String
+  subheading      String?
+  subheading2     String?  // optional second subheading
+  buttonText      String?
+  buttonLink      String?
+  imageUrl        String?  // optional: for background/banner image
+  publicId        String?  // optional: for cloud storage reference
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  isActive        Boolean  @default(true)
+}
