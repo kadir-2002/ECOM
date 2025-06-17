@@ -82,6 +82,7 @@ model Product {
   imageUrl      String?
   publicId      String?
   basePrice     Float?
+  oldPrice      Float?
   category      Category?    @relation("CategoryToProduct", fields: [categoryId], references: [id])
   categoryId    Int?
   subcategory   Subcategory? @relation("SubcategoryToProduct", fields: [subcategoryId], references: [id])
@@ -100,6 +101,7 @@ model Variant {
   id        Int      @id @default(autoincrement())
   name      String // e.g., "Red - Medium"
   price     Float
+  oldPrice  Float?
   stock     Int
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId Int
