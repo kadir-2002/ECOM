@@ -11,7 +11,7 @@ interface CloudinaryUploadResult {
 }
 
 export const createProduct = async (req: Request, res: Response) => {
-  const { name, description, categoryId, subcategoryId, basePrice } = req.body;
+  const { name, description, categoryId, subcategoryId, basePrice, tags } = req.body;
 
   try {
     let imageUrl: string | undefined;
@@ -26,7 +26,7 @@ export const createProduct = async (req: Request, res: Response) => {
             resolve(result as CloudinaryUploadResult);
           }
         );
-        uploadStream.end(req.file!.buffer);
+        uploadStream.end(req.file?.buffer);
       });
 
       imageUrl = result.secure_url;
@@ -45,6 +45,7 @@ export const createProduct = async (req: Request, res: Response) => {
         basePrice: basePrice ? parseFloat(basePrice) : undefined,
         categoryId: parseInt(categoryId),
         subcategoryId: parseInt(subcategoryId),
+        tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map((t: string) => t.trim())) : [],
       },
     });
 
@@ -123,15 +124,13 @@ export const getProductBySlug = async (req: Request, res: Response) => {
 
 export const updateProduct = async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
-  const { name, description, categoryId, subcategoryId, basePrice } = req.body;
+  const { name, description, categoryId, subcategoryId, basePrice, tags } = req.body;
 
   try {
     const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) {
-    res.status(404).json({ message: 'Product not found' });
-    return
+      return res.status(404).json({ message: 'Product not found' });
     }
-      
 
     let imageUrl = existing.imageUrl;
     let publicId = existing.publicId;
@@ -153,7 +152,7 @@ export const updateProduct = async (req: Request, res: Response) => {
             resolve(result as CloudinaryUploadResult);
           }
         );
-        uploadStream.end(req.file!.buffer);
+        uploadStream.end(req.file?.buffer);
       });
 
       imageUrl = result.secure_url;
@@ -170,6 +169,7 @@ export const updateProduct = async (req: Request, res: Response) => {
         basePrice: basePrice ? parseFloat(basePrice) : undefined,
         categoryId: categoryId ? parseInt(categoryId) : undefined,
         subcategoryId: subcategoryId ? parseInt(subcategoryId) : undefined,
+        tags: tags ? (Array.isArray(tags) ? tags : tags.split(',').map((t: string) => t.trim())) : existing.tags,
       },
     });
 
@@ -177,8 +177,7 @@ export const updateProduct = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Update product error:', error);
     if (error.code === 'P2025') {
-      res.status(404).json({ message: 'Product not found' });
-      return;
+      return res.status(404).json({ message: 'Product not found' });
     }
 
     res.status(500).json({ message: 'Error updating product', details: error.message });

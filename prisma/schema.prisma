@@ -92,6 +92,8 @@ model Product {
   isDeleted     Boolean @default(false)
   cartItems     CartItem[]
   orderItems    OrderItem[]
+
+  tags          String[]     // ✅ Optional string array
 }
 
 model Variant {
