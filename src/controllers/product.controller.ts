@@ -129,7 +129,8 @@ export const updateProduct = async (req: Request, res: Response) => {
   try {
     const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) {
-      return res.status(404).json({ message: 'Product not found' });
+       res.status(404).json({ message: 'Product not found' });
+       return;
     }
 
     let imageUrl = existing.imageUrl;
@@ -177,7 +178,8 @@ export const updateProduct = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Update product error:', error);
     if (error.code === 'P2025') {
-      return res.status(404).json({ message: 'Product not found' });
+       res.status(404).json({ message: 'Product not found' });
+       return;
     }
 
     res.status(500).json({ message: 'Error updating product', details: error.message });

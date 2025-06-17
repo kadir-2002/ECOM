@@ -19,6 +19,7 @@ import { errorHandler } from './middlewares/errorHandler';
 import './jobs/abandonedCartReminder'; 
 import './jobs/cancelPendingOrders'; 
 import bannerRoutes from './routes/banner.route';
+import whyChooseUs from './routes/whyChooseUs.route';
 
 dotenv.config();
 const app = express();
@@ -30,6 +31,7 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 
 app.use('/banners', bannerRoutes);
+app.use('/why-choose-us', whyChooseUs);
 app.use('/guest', guestRoutes);
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
