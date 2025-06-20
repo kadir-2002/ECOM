@@ -5,6 +5,7 @@ import { OrderStatus, PaymentStatus } from '@prisma/client';
 import dayjs from 'dayjs';
 import PDFDocument from 'pdfkit';
 import { sendOrderConfirmationEmail } from '../email/sendOrderConfirmationEmail';
+import { notifyOrderUpdate } from '../socket/websocket';
 
 type OrderItemInput = {
   productId?: number;
@@ -115,12 +116,43 @@ export const createOrder = async (req: CustomRequest, res: Response) => {
       finalAmount,
       order.payment?.method || 'N/A'
     );
+    // Notify user via WebSocket
+    notifyOrderUpdate(userId, {
+      type: 'ORDER_CREATED',
+      orderId: order.id,
+      status: order.status,
+      total: finalAmount,
+      createdAt: order.createdAt,
+    });
 
     res.status(201).json({ ...order, finalAmount });
   } catch (error) {
     console.error('Create order failed:', error);
     res.status(500).json({ message: 'Failed to create order', error });
   }
+};
+
+export const updateOrderStatus = async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+  const { status } = req.body;
+
+  const order = await prisma.order.update({
+    where: { id: Number(orderId) },
+    data: { status },
+    include: {
+      user: true,
+    },
+  });
+
+  // Notify user via WebSocket
+  notifyOrderUpdate(order.userId, {
+    type: 'ORDER_STATUS_UPDATE',
+    orderId: order.id,
+    status: order.status,
+    timestamp: new Date(),
+  });
+
+  res.json(order);
 };
 
 // Get orders for logged in user
