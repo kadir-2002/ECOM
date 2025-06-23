@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import PDFDocument from 'pdfkit';
 import { sendOrderConfirmationEmail } from '../email/sendOrderConfirmationEmail';
 import { notifyOrderUpdate } from '../socket/websocket';
+import { SendNotification } from '../utils/notification';
 
 type OrderItemInput = {
   productId?: number;
@@ -116,14 +117,8 @@ export const createOrder = async (req: CustomRequest, res: Response) => {
       finalAmount,
       order.payment?.method || 'N/A'
     );
-    // Notify user via WebSocket
-    notifyOrderUpdate(userId, {
-      type: 'ORDER_CREATED',
-      orderId: order.id,
-      status: order.status,
-      total: finalAmount,
-      createdAt: order.createdAt,
-    });
+
+    await SendNotification(userId, `Your order #${order.id} has been created and status ${order.status}. Final amount: ₹${finalAmount}`);
 
     res.status(201).json({ ...order, finalAmount });
   } catch (error) {
@@ -144,13 +139,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     },
   });
 
-  // Notify user via WebSocket
-  notifyOrderUpdate(order.userId, {
-    type: 'ORDER_STATUS_UPDATE',
-    orderId: order.id,
-    status: order.status,
-    timestamp: new Date(),
-  });
+  await SendNotification(order.userId, `Your order #${order.id} status has been updated to ${order.status}. at ${dayjs().format('DD/MM/YYYY, hh:mmA')}`);
 
   res.json(order);
 };

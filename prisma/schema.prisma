@@ -35,6 +35,7 @@ model User {
   orders    Order[] 
   addresses Address[]
   discountCodes DiscountCode[]
+  notifications Notification[] 
 }
 
 model Profile {
@@ -282,4 +283,13 @@ model GalleryItem {
   publicId    String
   category    String?     // Optional: "Living Room", "Office", etc.
   createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

@@ -21,6 +21,7 @@ import './jobs/cancelPendingOrders';
 import bannerRoutes from './routes/banner.route';
 import whyChooseUs from './routes/whyChooseUs.route';
 import galleryRoutes from './routes/gallery.route';
+import notificationRoutes from './routes/notification.route';
 
 dotenv.config();
 const app = express();
@@ -39,6 +40,7 @@ app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
 app.use('/admin', adminRoutes);
 app.use('/password-reset', passwordResetRoutes);
+app.use('/notifications', notificationRoutes);
 app.use('/product', productRoutes);
 app.use('/category', categoryRoutes);
 app.use('/cart', cartRoutes);
