@@ -5,8 +5,7 @@ import { OrderStatus, PaymentStatus } from '@prisma/client';
 import dayjs from 'dayjs';
 import PDFDocument from 'pdfkit';
 import { sendOrderConfirmationEmail } from '../email/sendOrderConfirmationEmail';
-import { notifyOrderUpdate } from '../socket/websocket';
-import { SendNotification } from '../utils/notification';
+import { sendNotification } from '../utils/notification';
 
 type OrderItemInput = {
   productId?: number;
@@ -118,7 +117,7 @@ export const createOrder = async (req: CustomRequest, res: Response) => {
       order.payment?.method || 'N/A'
     );
 
-    await SendNotification(userId, `Your order #${order.id} has been created and status ${order.status}. Final amount: ₹${finalAmount}`);
+    await sendNotification(userId, `🎉 Your order #${order.id} has been created and status ${order.status}. Final amount: ₹${finalAmount}`, 'ORDER');
 
     res.status(201).json({ ...order, finalAmount });
   } catch (error) {
@@ -139,7 +138,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     },
   });
 
-  await SendNotification(order.userId, `Your order #${order.id} status has been updated to ${order.status}. at ${dayjs().format('DD/MM/YYYY, hh:mmA')}`);
+  await sendNotification(order.userId, `Your order #${order.id} status has been updated to ${order.status}. at ${dayjs().format('DD/MM/YYYY, hh:mmA')}`, 'ORDER');
 
   res.json(order);
 };

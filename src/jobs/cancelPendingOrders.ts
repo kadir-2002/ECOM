@@ -2,6 +2,7 @@ import { OrderStatus } from '@prisma/client';
 import prisma from '../db/prisma';
 import { CronJob } from 'cron';
 import { sendOrderCancelledEmail } from '../email/canceledOrderMail';
+import { sendNotification } from '../utils/notification';
 
 
 export async function cancelStalePendingOrdersAndNotify() {
@@ -41,6 +42,7 @@ export async function cancelStalePendingOrdersAndNotify() {
       if (email) {
         try {
           await sendOrderCancelledEmail(email, order.id);
+          sendNotification(order.userId, `⚠️ Order #${order.id} has been cancelled due to inactivity.`, 'ALERT');
           console.log(`Sent cancellation email to ${email} for order #${order.id}`);
         } catch (err) {
           console.error(`Failed to send cancellation email to ${email}`, err);

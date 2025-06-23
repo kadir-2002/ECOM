@@ -285,11 +285,18 @@ model GalleryItem {
   createdAt   DateTime @default(now())
 }
 
+enum NotificationType {
+  ORDER
+  ALERT
+  SYSTEM
+}
+
 model Notification {
-  id        Int      @id @default(autoincrement())
+  id        Int              @id @default(autoincrement())
+  user      User             @relation(fields: [userId], references: [id])
   userId    Int
-  user      User     @relation(fields: [userId], references: [id])
   message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  type      NotificationType @default(ORDER) // ✅ Added type field
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
 }

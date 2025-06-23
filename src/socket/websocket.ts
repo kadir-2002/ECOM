@@ -40,7 +40,7 @@ export const initWebSocket = (server: any) => {
   });
 };
 
-export const notifyOrderUpdate = (userId: number, message: any) => {
+export const notifyUpdate = (userId: number, message: any) => {
   const client = clients.get(userId);
   if (client && client.readyState === client.OPEN) {
     client.send(JSON.stringify(message));

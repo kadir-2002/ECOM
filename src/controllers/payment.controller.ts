@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
-import { PrismaClient, PaymentStatus } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { PaymentStatus } from "@prisma/client";
+import prisma from "../db/prisma";
 
 // Create a new payment
 export const createPayment = async (req: Request, res: Response) => {

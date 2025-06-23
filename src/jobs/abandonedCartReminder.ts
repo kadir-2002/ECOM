@@ -2,6 +2,8 @@ import prisma from '../db/prisma';
 import { sendAbandonedCartEmail } from '../email/abandonedMail';
 import { CronJob } from 'cron';
 import crypto from 'crypto';
+import { sendNotification } from '../utils/notification';
+import { NotificationType } from '@prisma/client';
 
 // Generate a unique 6-character discount code
 async function generateUniqueCode(): Promise<string> {
@@ -76,6 +78,7 @@ export async function sendAbandonedCartReminders() {
       }));
 
       await sendAbandonedCartEmail(userEmail, products, discountCode.code);
+      sendNotification(userId, `Reminder: You have items in your cart! Get a discount on your abandoned cart. 🛍️`, NotificationType.SYSTEM);
 
       await prisma.cart.update({
         where: { id: cart.id },

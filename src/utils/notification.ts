@@ -1,19 +1,29 @@
 import prisma from '../db/prisma';
-import { notifyOrderUpdate } from '../socket/websocket';
+import { notifyUpdate } from '../socket/websocket';
 
-export const SendNotification = async (
+type NotificationType = 'ORDER' | 'ALERT' | 'SYSTEM';
+
+export const sendNotification = async (
   userId: number,
-  message: string
+  message: string,
+  type: NotificationType = 'ORDER' // default type
 ) => {
-  await prisma.notification.create({
+  const notification = await prisma.notification.create({
     data: {
       userId,
       message,
+      type,
     },
   });
 
-  notifyOrderUpdate(userId, {
+  notifyUpdate(userId, {
     type: 'NOTIFICATION',
-    message,
+    data: {
+      message,
+      type, // ORDER | ALERT | SYSTEM
+      id: notification.id,
+      isRead: notification.isRead,
+      createdAt: notification.createdAt,
+    },
   });
 };
