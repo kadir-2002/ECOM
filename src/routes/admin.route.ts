@@ -9,6 +9,9 @@ import {
   importProductsFromCSV,
   exportVariantsToCSV,
   importVariantsFromCSV,
+  adminBroadcastNotification,
+  getUserNotificationsByAdmin,
+  deleteUserNotificationByAdmin,
 } from '../controllers/admin.controller';
 import { authenticate } from '../middlewares/authenticate';
 import { authorizeAdmin } from '../middlewares/authorizaAdmin';
@@ -33,5 +36,8 @@ router.post('/import/products', uploadCsv.single('file'), importProductsFromCSV)
 router.post('/import/variants', uploadCsv.single('file'), importVariantsFromCSV);
 router.post('/discounts', createDiscountRule);
 router.delete('/discounts/:id', deleteDiscountRule);
-
+// Admin notification routes
+router.post('/notifications/broadcast', adminBroadcastNotification);
+router.get('/notifications/user/:userId', getUserNotificationsByAdmin);
+router.delete('/notifications/:id', deleteUserNotificationByAdmin);
 export default router;

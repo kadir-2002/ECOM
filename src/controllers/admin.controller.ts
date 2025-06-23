@@ -9,6 +9,7 @@ import { format } from 'fast-csv';
 import * as fastcsv from 'fast-csv';
 import { generateSlug } from '../utils/slugify';
 import cloudinary from '../upload/cloudinary';
+import { sendNotification } from '../utils/notification';
 
 
 
@@ -206,7 +207,6 @@ export const getAllUsers = async (req: CustomRequest, res: Response) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
-
 
 export const exportUsersToCsv = async (req: Request, res: Response) => {
   try {
@@ -527,4 +527,50 @@ export const importVariantsFromCSV = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Error saving variants' });
       }
     });
+};
+
+export const adminBroadcastNotification = async (req: Request, res: Response) => {
+  const { message, type = 'SYSTEM' } = req.body;
+
+  if (!message) {
+    res.status(400).json({ message: 'Message is required' });
+    return;
+  }
+    
+  const users = await prisma.user.findMany({
+    where: { isDeleted: false },
+    select: { id: true },
+  });
+
+  await Promise.all(users.map(user => sendNotification(user.id, message, type)));
+
+  res.json({ message: 'Broadcast sent to all users' });
+};
+
+export const getUserNotificationsByAdmin = async (req: Request, res: Response) => {
+  const userId = Number(req.params.userId);
+  if (!userId) {
+    res.status(400).json({ message: 'Invalid userId' });
+    return;
+  }
+    
+  const notifications = await prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  res.json({ notifications });
+};
+
+export const deleteUserNotificationByAdmin = async (req: Request, res: Response) => {
+  const id = Number(req.params.id);
+  if (!id) {
+    res.status(400).json({ message: 'Invalid notification id' });
+    return;
+  }
+    
+
+  await prisma.notification.delete({ where: { id } });
+
+  res.json({ message: 'Notification deleted' });
 };
