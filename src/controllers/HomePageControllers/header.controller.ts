@@ -26,12 +26,10 @@ export const addHeaderData = async (req: Request, res: Response) => {
     });
 
     if (!user || !user.profile) {
-      res
-        .status(401)
-        .json({
-          success: false,
-          message: "Invalid or incomplete User profile",
-        });
+      res.status(401).json({
+        success: false,
+        message: "Invalid or incomplete User profile",
+      });
       return;
     }
 
@@ -79,39 +77,66 @@ export const getHeaders = async (req: Request, res: Response) => {
 
 
 export const updateHeaderData = async (req: Request, res: Response) => {
-    const { sequence_number, name, link, is_active } = req.body;
-    const { header_id } = req.params;
-  
-    if (
-      sequence_number === undefined ||
-      !name ||
-      !link ||
-      is_active === undefined
-    ) {
-      res.status(400).json({ success: false, message: "Invalid JSON" });
-      return;
-    }
-  
-    try {
-      const header = await prisma.header.update({
-        where: {
-            id : Number(header_id)
-        },
-        data: {
-            sequence_number,
-            name,
-            link,
-            is_active,
-          },
+  const { sequence_number, name, link, is_active } = req.body;
+  const { header_id } = req.params;
+
+  if (
+    sequence_number === undefined ||
+    !name ||
+    !link ||
+    is_active === undefined
+  ) {
+    res.status(400).json({ success: false, message: "Invalid JSON" });
+    return;
+  }
+
+  try {
+    const header = await prisma.header.update({
+      where: {
+        id: Number(header_id),
+      },
+      data: {
+        sequence_number,
+        name,
+        link,
+        is_active,
+      },
+    });
+    res.status(200).json({ success: true, result: header });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+export const deleteHeaderData = async (req: Request, res: Response) => {
+  const { header_id } = req.params;
+
+  if (!header_id || isNaN(Number(header_id))) {
+    res
+      .status(400)
+      .json({ success: false, message: "Invalid header ID" });
+      return
+  }
+
+  try {
+    await prisma.header.delete({
+      where: {
+        id: Number(header_id),
+      },
+    });
+
+    res
+      .status(200)
+      .json({ success: true, message: "Header deleted successfully" });
+      return
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: error.message || "Internal server error",
       });
-      res.status(200).json({ success: true, result: header });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
-    }
-  };
-
-//   export const deleteHeaderData = async (req: Request, res: Response) => {
-//     const {header_id} = req.params;
-
-
-//   }
+      return;
+  }
+};
