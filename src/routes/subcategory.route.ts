@@ -14,14 +14,11 @@ import { uploadMemory } from '../upload/multerCloudinary';
 
 const router = Router();
 
-// Public routes
 router.get('/', getAllSubcategories);
-router.get('/detail/:id', getSubcategoryById); // Changed from slug to ID
+router.get('/detail/:id', getSubcategoryById); 
 
-// Admin-only routes
 router.use(authenticate, authorizeAdmin);
 
-// Accept both image and banner uploads
 const fileUploadMiddleware = uploadMemory.fields([
   { name: 'image', maxCount: 1 },
   { name: 'banner', maxCount: 1 },
