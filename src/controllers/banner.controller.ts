@@ -40,10 +40,16 @@ export const createBanner = async (req: Request, res: Response) => {
 
     let imageUrl, publicId, mobileBanner;
 
-    if (req.file && req.file.buffer) {
-      const result = await uploadToCloudinary(req.file.buffer, 'banners');
-      imageUrl = result.secure_url;
-      publicId = result.public_id;
+    if (req.files && 'image' in req.files) {
+      const mainFile = Array.isArray(req.files['image'])
+        ? req.files['image'][0]
+        : req.files['image'];
+
+      if (mainFile?.buffer) {
+        const result = await uploadToCloudinary(mainFile.buffer, 'banners');
+        imageUrl = result.secure_url;
+        publicId = result.public_id;
+      }
     }
 
      // Optional mobile banner image
