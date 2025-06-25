@@ -54,7 +54,6 @@ app.use('/discount-codes', discountCodeRoutes);
 app.use('/header', headerRoutes);
 app.use('/company-settings',companyRoutes)
 
-
 app.use(globalErrorHandler);
 app.use(errorHandler);
 
