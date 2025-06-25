@@ -66,7 +66,7 @@ model Category {
   isDeleted                Boolean   @default(false)
   slug                     String    @unique
   createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  updatedAt DateTime @updatedAt @default(now())
 }
 
 model Product {
