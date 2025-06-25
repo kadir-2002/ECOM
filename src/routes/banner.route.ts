@@ -11,10 +11,8 @@ import { authorizeAdmin } from '../middlewares/authorizaAdmin';
 
 const router = Router();
 
-// Public route
 router.get('/', getBanners);
 
-// Admin-only routes
 router.use(authenticate, authorizeAdmin);
 const bannerUpload = uploadMemory.fields([
   { name: 'image', maxCount: 1 },
