@@ -42,7 +42,7 @@ export const createBanner = async (req: Request, res: Response) => {
 
     // Basic validation
     if (!heading || !sequence_number || !buttonText || !buttonLink) {
-      return res.status(400).json({
+       res.status(400).json({
         error: 'Missing required fields: heading, sequence_number, buttonText, and buttonLink are required.',
       });
     }
@@ -63,14 +63,14 @@ export const createBanner = async (req: Request, res: Response) => {
           imageUrl = result.secure_url;
           publicId = result.public_id;
         } catch (err) {
-          return res.status(500).json({
+           res.status(500).json({
             error: 'Failed to upload main banner image to Cloudinary.',
             details: (err as Error).message,
           });
         }
       }
     } else {
-      return res.status(400).json({
+       res.status(400).json({
         error: 'Main banner image (field "image") is required.',
       });
     }
@@ -86,7 +86,7 @@ export const createBanner = async (req: Request, res: Response) => {
           const mobileResult = await uploadToCloudinary(mobileFile.buffer, 'banners/mobile');
           mobileBanner = mobileResult.secure_url;
         } catch (err) {
-          return res.status(500).json({
+           res.status(500).json({
             error: 'Failed to upload mobile banner image to Cloudinary.',
             details: (err as Error).message,
           });
@@ -117,7 +117,7 @@ export const createBanner = async (req: Request, res: Response) => {
     console.error('Error creating banner:', error);
 
     if (error instanceof MulterError) {
-      return res.status(400).json({
+       res.status(400).json({
         error: 'File upload error',
         details: error.message,
       });
