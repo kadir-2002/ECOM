@@ -55,7 +55,7 @@ model Category {
   createdAt     DateTime      @default(now())
   slug          String        @unique
   isDeleted     Boolean       @default(false)
-
+  
   imageUrl String? // Optional image URL
   publicId String? // Optional Cloudinary public ID
 }
