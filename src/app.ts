@@ -23,6 +23,7 @@ import bannerRoutes from './routes/banner.route';
 import whyChooseUs from './routes/whyChooseUs.route';
 import galleryRoutes from './routes/gallery.route';
 import notificationRoutes from './routes/notification.route';
+import { globalErrorHandler } from './utils/globalErrorHandler';
 
 dotenv.config();
 const app = express();
@@ -52,6 +53,7 @@ app.use('/discount-codes', discountCodeRoutes);
 app.use('/header', headerRoutes);
 
 
+app.use(globalErrorHandler);
 app.use(errorHandler);
 
 
