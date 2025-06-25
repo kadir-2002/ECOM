@@ -23,6 +23,8 @@ import bannerRoutes from './routes/banner.route';
 import whyChooseUs from './routes/whyChooseUs.route';
 import galleryRoutes from './routes/gallery.route';
 import notificationRoutes from './routes/notification.route';
+import companyRoutes from './routes/ComponySettingsRoutes/companySettings.route';
+import { globalErrorHandler } from './utils/globalErrorHandler';
 
 dotenv.config();
 const app = express();
@@ -50,8 +52,10 @@ app.use('/order', orderRoutes);
 app.use('/payment', paymentRoutes);
 app.use('/discount-codes', discountCodeRoutes);
 app.use('/header', headerRoutes);
+app.use('/company-settngs',companyRoutes)
 
 
+app.use(globalErrorHandler);
 app.use(errorHandler);
 
 

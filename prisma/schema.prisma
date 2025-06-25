@@ -312,3 +312,30 @@ model HomepageBanner {
   updatedAt       DateTime @updatedAt
   isActive        Boolean  @default(true)
 }
+
+model CompanySettings {
+  id                          String   @id @default(uuid())
+  country                     String
+  currency                    String
+  currency_symbol             String
+  logo                        String?   // Optional logo
+  address                     String
+  phone                       String
+  email                       String
+  description                 String?
+
+  facebook_icon               String?   // Optional social icons/links
+  facebook_link               String?
+  instagram_icon              String?
+  instagram_link              String?
+  twitter_icon                String?
+  twitter_link                String?
+  linkedin_icon               String?
+  linkedin_link               String?
+
+  product_low_stock_threshold Int
+  minimum_order_quantity      Int
+
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}

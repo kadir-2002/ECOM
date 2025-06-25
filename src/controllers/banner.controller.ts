@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../db/prisma';
 import cloudinary from '../upload/cloudinary';
 import { Readable } from 'stream';
+import { MulterError } from 'multer';
 
 // Utility to handle Cloudinary stream upload
 const uploadToCloudinary = (buffer: Buffer, folder: string): Promise<any> => {
@@ -27,6 +28,7 @@ export const getBanners = async (req: Request, res: Response) => {
   }
 };
 
+
 export const createBanner = async (req: Request, res: Response) => {
   try {
     const {
@@ -38,36 +40,65 @@ export const createBanner = async (req: Request, res: Response) => {
       buttonLink,
     } = req.body;
 
-    let imageUrl, publicId, mobileBanner;
+    // Basic validation
+    if (!heading || !sequence_number || !buttonText || !buttonLink) {
+      return res.status(400).json({
+        error: 'Missing required fields: heading, sequence_number, buttonText, and buttonLink are required.',
+      });
+    }
 
+    let imageUrl: string | undefined;
+    let publicId: string | undefined;
+    let mobileBanner: string | undefined;
+
+    // Main image upload
     if (req.files && 'image' in req.files) {
       const mainFile = Array.isArray(req.files['image'])
         ? req.files['image'][0]
         : req.files['image'];
 
       if (mainFile?.buffer) {
-        const result = await uploadToCloudinary(mainFile.buffer, 'banners');
-        imageUrl = result.secure_url;
-        publicId = result.public_id;
+        try {
+          const result = await uploadToCloudinary(mainFile.buffer, 'banners');
+          imageUrl = result.secure_url;
+          publicId = result.public_id;
+        } catch (err) {
+          return res.status(500).json({
+            error: 'Failed to upload main banner image to Cloudinary.',
+            details: (err as Error).message,
+          });
+        }
       }
+    } else {
+      return res.status(400).json({
+        error: 'Main banner image (field "image") is required.',
+      });
     }
 
-     // Optional mobile banner image
+    // Optional mobile banner image
     if (req.files && 'mobile_banner' in req.files) {
       const mobileFile = Array.isArray(req.files['mobile_banner'])
         ? req.files['mobile_banner'][0]
         : req.files['mobile_banner'];
 
       if (mobileFile?.buffer) {
-        const mobileResult = await uploadToCloudinary(mobileFile.buffer, 'banners/mobile');
-        mobileBanner = mobileResult.secure_url;
+        try {
+          const mobileResult = await uploadToCloudinary(mobileFile.buffer, 'banners/mobile');
+          mobileBanner = mobileResult.secure_url;
+        } catch (err) {
+          return res.status(500).json({
+            error: 'Failed to upload mobile banner image to Cloudinary.',
+            details: (err as Error).message,
+          });
+        }
       }
     }
 
+    // Save to database
     const banner = await prisma.homepageBanner.create({
       data: {
         heading,
-        sequence_number,
+        sequence_number: Number(sequence_number),
         subheading,
         subheading2,
         buttonText,
@@ -78,9 +109,24 @@ export const createBanner = async (req: Request, res: Response) => {
       },
     });
 
-    res.status(201).json(banner);
+    res.status(201).json({
+      message: 'Banner created successfully.',
+      banner,
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create banner' });
+    console.error('Error creating banner:', error);
+
+    if (error instanceof MulterError) {
+      return res.status(400).json({
+        error: 'File upload error',
+        details: error.message,
+      });
+    }
+
+    res.status(500).json({
+      error: 'Internal server error while creating banner.',
+      details: (error as Error).message,
+    });
   }
 };
 
