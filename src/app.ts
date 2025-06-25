@@ -52,7 +52,7 @@ app.use('/order', orderRoutes);
 app.use('/payment', paymentRoutes);
 app.use('/discount-codes', discountCodeRoutes);
 app.use('/header', headerRoutes);
-app.use('/company-settngs',companyRoutes)
+app.use('/company-settings',companyRoutes)
 
 
 app.use(globalErrorHandler);
