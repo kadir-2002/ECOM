@@ -90,6 +90,7 @@ export const updateBanner = async (req: Request, res: Response) => {
       buttonText,
       buttonLink,
     } = req.body;
+    
 
     const data: any = {
       heading,
