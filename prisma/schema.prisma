@@ -48,32 +48,25 @@ model Profile {
 }
 
 model Category {
-  id            Int           @id @default(autoincrement())
-  name          String        @unique
-  subcategories Subcategory[]
-  products      Product[]     @relation("CategoryToProduct")
-  createdAt     DateTime      @default(now())
-  slug          String        @unique
-  isDeleted     Boolean       @default(false)
-  
-  imageUrl String? // Optional image URL
-  publicId String? // Optional Cloudinary public ID
-}
-
-model Subcategory {
-  id         Int       @id @default(autoincrement())
-  name       String
-  category   Category  @relation(fields: [categoryId], references: [id])
-  categoryId Int
-  products   Product[] @relation("SubcategoryToProduct")
-  createdAt  DateTime  @default(now())
-  slug       String    @unique
-  isDeleted  Boolean   @default(false)
-
-  imageUrl String? // Optional image URL
-  publicId String? // Optional Cloudinary public ID
-
-  @@unique([name, categoryId])
+  id                       Int       @id @default(autoincrement())
+  sequence_number          Int?      // ← make optional
+  categryName              String?   // ← make optional
+  title                    String?
+  heading                  String?
+  description              String?
+  image                    String?
+  banner                   String?
+  seodescription           String?
+  seo_title                String?
+  seo_description          String?
+  seo_keyword              String?
+  parent_catgory           Int?
+  minimum_order_quantity   Int?
+  isActive                 Boolean   @default(false)
+  isDeleted                Boolean   @default(false)
+  slug                     String    @unique
+  createdAt                DateTime  @default(now())
+  updatedAt DateTime @updatedAt @default(now())
 }
 
 model Product {
@@ -84,10 +77,6 @@ model Product {
   publicId      String?
   basePrice     Float?
   oldPrice      Float?
-  category      Category?    @relation("CategoryToProduct", fields: [categoryId], references: [id])
-  categoryId    Int?
-  subcategory   Subcategory? @relation("SubcategoryToProduct", fields: [subcategoryId], references: [id])
-  subcategoryId Int?
   variants      Variant[]
   createdAt     DateTime     @default(now())
   slug          String       @unique
