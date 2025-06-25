@@ -1,17 +1,70 @@
 import { Request, Response } from 'express';
 import prisma from '../../db/prisma';
+import { uploadToCloudinary } from '../banner.controller';
 
 
 // 🔹 Create new company settings
 export const createCompanySettings = async (req: Request, res: Response) => {
   try {
-    const data = req.body;
+    const {
+      country,
+      currency,
+      currency_symbol,
+      address,
+      phone,
+      email,
+      description,
+      facebook_icon,
+      facebook_link,
+      instagram_icon,
+      instagram_link,
+      twitter_icon,
+      twitter_link,
+      linkedin_icon,
+      linkedin_link,
+      product_low_stock_threshold,
+      minimum_order_quantity,
+    } = req.body;
 
-    const settings = await prisma.companySettings.create({ data });
+    let logoUrl: string | undefined;
 
-    res.status(201).json({ message: 'Company settings created', settings });
+    if (req.file && req.file.buffer) {
+      try {
+        const result = await uploadToCloudinary(req.file.buffer, 'company/logos');
+        logoUrl = result.secure_url;
+      } catch (err) {
+         res.status(500).json({
+          message: 'Failed to upload logo image',
+          details: (err as Error).message,
+        });
+      }
+    }
+
+    const settings = await prisma.companySettings.create({
+      data: {
+        country,
+        currency,
+        currency_symbol,
+        address,
+        phone,
+        email,
+        description,
+        facebook_icon,
+        facebook_link,
+        instagram_icon,
+        instagram_link,
+        twitter_icon,
+        twitter_link,
+        linkedin_icon,
+        linkedin_link,
+        product_low_stock_threshold: Number(product_low_stock_threshold),
+        minimum_order_quantity: Number(minimum_order_quantity),
+        logo: logoUrl,
+      },
+    });
+
+    res.status(201).json({ message: 'Settings created successfully', settings });
   } catch (error) {
-    console.error('Error creating company settings:', error);
     res.status(500).json({
       message: 'Failed to create company settings',
       details: (error as Error).message,

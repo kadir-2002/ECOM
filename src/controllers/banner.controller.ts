@@ -5,7 +5,7 @@ import { Readable } from 'stream';
 import { MulterError } from 'multer';
 
 // Utility to handle Cloudinary stream upload
-const uploadToCloudinary = (buffer: Buffer, folder: string): Promise<any> => {
+export const uploadToCloudinary = (buffer: Buffer, folder: string): Promise<any> => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream({ folder }, (error, result) => {
       if (error) reject(error);
