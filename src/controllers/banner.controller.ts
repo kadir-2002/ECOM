@@ -40,7 +40,6 @@ export const createBanner = async (req: Request, res: Response) => {
       buttonLink,
     } = req.body;
 
-    // Basic validation
     if (!heading || !sequence_number || !buttonText || !buttonLink) {
        res.status(400).json({
         error: 'Missing required fields: heading, sequence_number, buttonText, and buttonLink are required.',
@@ -51,7 +50,7 @@ export const createBanner = async (req: Request, res: Response) => {
     let publicId: string | undefined;
     let mobileBanner: string | undefined;
 
-    // Main image upload
+    // Main banner image
     if (req.files && 'image' in req.files) {
       const mainFile = Array.isArray(req.files['image'])
         ? req.files['image'][0]
@@ -75,7 +74,7 @@ export const createBanner = async (req: Request, res: Response) => {
       });
     }
 
-    // Optional mobile banner image
+    // Optional mobile banner
     if (req.files && 'mobile_banner' in req.files) {
       const mobileFile = Array.isArray(req.files['mobile_banner'])
         ? req.files['mobile_banner'][0]
@@ -94,7 +93,6 @@ export const createBanner = async (req: Request, res: Response) => {
       }
     }
 
-    // Save to database
     const banner = await prisma.homepageBanner.create({
       data: {
         heading,
@@ -109,21 +107,19 @@ export const createBanner = async (req: Request, res: Response) => {
       },
     });
 
-    res.status(201).json({
+     res.status(201).json({
       message: 'Banner created successfully.',
       banner,
     });
   } catch (error) {
     console.error('Error creating banner:', error);
-
     if (error instanceof MulterError) {
        res.status(400).json({
         error: 'File upload error',
         details: error.message,
       });
     }
-
-    res.status(500).json({
+     res.status(500).json({
       error: 'Internal server error while creating banner.',
       details: (error as Error).message,
     });
@@ -142,23 +138,30 @@ export const updateBanner = async (req: Request, res: Response) => {
       buttonText,
       buttonLink,
     } = req.body;
-    
 
     const data: any = {
       heading,
-      sequence_number,
+      sequence_number: Number(sequence_number),
       subheading,
       subheading2,
       buttonText,
       buttonLink,
     };
 
-    if (req.file && req.file.buffer) {
-      const result = await uploadToCloudinary(req.file.buffer, 'banners');
-      data.imageUrl = result.secure_url;
-      data.publicId = result.public_id;
+    // Main image update
+    if (req.files && 'image' in req.files) {
+      const imageFile = Array.isArray(req.files['image'])
+        ? req.files['image'][0]
+        : req.files['image'];
+
+      if (imageFile?.buffer) {
+        const result = await uploadToCloudinary(imageFile.buffer, 'banners');
+        data.imageUrl = result.secure_url;
+        data.publicId = result.public_id;
+      }
     }
 
+    // Optional mobile image update
     if (req.files && 'mobile_banner' in req.files) {
       const mobileFile = Array.isArray(req.files['mobile_banner'])
         ? req.files['mobile_banner'][0]
@@ -175,11 +178,16 @@ export const updateBanner = async (req: Request, res: Response) => {
       data,
     });
 
-    res.json(updated);
+     res.json({
+      message: 'Banner updated successfully.',
+      banner: updated,
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update banner' });
+    console.error('Error updating banner:', error);
+     res.status(500).json({ error: 'Failed to update banner', details: (error as Error).message });
   }
 };
+
 
 export const deleteBanner = async (req: Request, res: Response) => {
   const { id } = req.params;
