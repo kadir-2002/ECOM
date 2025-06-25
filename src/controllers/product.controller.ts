@@ -33,7 +33,7 @@ export const createProduct = async (req: Request, res: Response) => {
       publicId = result.public_id;
     }
 
-    const slug = await generateSlug(name, 'product');
+    const slug = await generateSlug(name);
 
     const product = await prisma.product.create({
       data: {

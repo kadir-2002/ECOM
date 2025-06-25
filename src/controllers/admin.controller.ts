@@ -384,7 +384,7 @@ export const importProductsFromCSV = async (req: Request, res: Response) => {
               name,
               description: description || null,
               basePrice: parseFloat(basePrice),
-              slug: await generateSlug(name, "product"),
+              slug: await generateSlug(name),
               isDeleted: false,
               variants: variants ? { create: JSON.parse(variants) } : undefined,
               category: category ? { connect: { id: Number(category) } } : undefined,
