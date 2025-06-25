@@ -31,13 +31,14 @@ export const createBanner = async (req: Request, res: Response) => {
   try {
     const {
       heading,
+      sequence_number,
       subheading,
       subheading2,
       buttonText,
       buttonLink,
     } = req.body;
 
-    let imageUrl, publicId;
+    let imageUrl, publicId, mobileBanner;
 
     if (req.file && req.file.buffer) {
       const result = await uploadToCloudinary(req.file.buffer, 'banners');
@@ -45,14 +46,28 @@ export const createBanner = async (req: Request, res: Response) => {
       publicId = result.public_id;
     }
 
+     // Optional mobile banner image
+    if (req.files && 'mobile_banner' in req.files) {
+      const mobileFile = Array.isArray(req.files['mobile_banner'])
+        ? req.files['mobile_banner'][0]
+        : req.files['mobile_banner'];
+
+      if (mobileFile?.buffer) {
+        const mobileResult = await uploadToCloudinary(mobileFile.buffer, 'banners/mobile');
+        mobileBanner = mobileResult.secure_url;
+      }
+    }
+
     const banner = await prisma.homepageBanner.create({
       data: {
         heading,
+        sequence_number,
         subheading,
         subheading2,
         buttonText,
         buttonLink,
         imageUrl,
+        mobile_banner: mobileBanner,
         publicId,
       },
     });
@@ -69,6 +84,7 @@ export const updateBanner = async (req: Request, res: Response) => {
   try {
     const {
       heading,
+      sequence_number,
       subheading,
       subheading2,
       buttonText,
@@ -77,6 +93,7 @@ export const updateBanner = async (req: Request, res: Response) => {
 
     const data: any = {
       heading,
+      sequence_number,
       subheading,
       subheading2,
       buttonText,
@@ -87,6 +104,17 @@ export const updateBanner = async (req: Request, res: Response) => {
       const result = await uploadToCloudinary(req.file.buffer, 'banners');
       data.imageUrl = result.secure_url;
       data.publicId = result.public_id;
+    }
+
+    if (req.files && 'mobile_banner' in req.files) {
+      const mobileFile = Array.isArray(req.files['mobile_banner'])
+        ? req.files['mobile_banner'][0]
+        : req.files['mobile_banner'];
+
+      if (mobileFile?.buffer) {
+        const mobileResult = await uploadToCloudinary(mobileFile.buffer, 'banners/mobile');
+        data.mobile_banner = mobileResult.secure_url;
+      }
     }
 
     const updated = await prisma.homepageBanner.update({
