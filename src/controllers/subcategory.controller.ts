@@ -58,8 +58,6 @@ export const createSubcategory = async (req: Request, res: Response) => {
   }
 };
 
-// Remaining functions (getAllSubcategories, getSubcategoryById, delete, soft/restore) remain the same
-
 // Update Subcategory
 export const updateSubcategory = async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
@@ -101,7 +99,7 @@ export const updateSubcategory = async (req: Request, res: Response) => {
 };
 
 // Get All Subcategories
-export const getAllSubcategories = async (_req: Request, res: Response) => {
+export const getAllSubcategories = async (req: Request, res: Response) => {
   try {
     const subcategories = await prisma.subcategory.findMany({
       where: { isDeleted: false },

@@ -243,7 +243,7 @@ export const deleteBanner = async (req: Request, res: Response) => {
     await prisma.homepageBanner.delete({
       where: { id: parseInt(id) },
     });
-    res.json({ message: 'Banner deleted successfully' });
+    res.json({ success:true,message: 'Banner deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete banner' });
   }

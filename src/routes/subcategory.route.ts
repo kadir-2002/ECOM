@@ -16,7 +16,7 @@ const router = Router();
 
 // Public routes
 router.get('/', getAllSubcategories);
-router.get('/:id', getSubcategoryById); // Changed from slug to ID
+router.get('/detail/:id', getSubcategoryById); // Changed from slug to ID
 
 // Admin-only routes
 router.use(authenticate, authorizeAdmin);
