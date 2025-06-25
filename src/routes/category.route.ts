@@ -4,28 +4,35 @@ import {
   getAllCategories,
   updateCategory,
   deleteCategory,
-  getCategoryBySlug,
   softDeleteCategory,
   restoreCategory,
+  getCategoryById,
 } from '../controllers/category.controller';
+
 import subcategoryRoutes from './subcategory.route';
 import { authenticate } from '../middlewares/authenticate';
 import { authorizeAdmin } from '../middlewares/authorizaAdmin';
 import { uploadMemory } from '../upload/multerCloudinary';
+
 const router = Router();
 
-//public route
+// Public routes
 router.get('/', getAllCategories);
-router.get('/info/:slug', getCategoryBySlug);
-
+router.get('/:id', getCategoryById);
+// Nested subcategory routes
 router.use('/subcategory', subcategoryRoutes);
 
-
-//admin route
+// Admin-only routes
 router.use(authenticate, authorizeAdmin);
 
-router.post('/', uploadMemory.single('image'), createCategory);
-router.patch('/:id', uploadMemory.single('image'), updateCategory);
+// Handle image and banner uploads
+const categoryUpload = uploadMemory.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'banner', maxCount: 1 },
+]);
+
+router.post('/', categoryUpload, createCategory);
+router.patch('/:id', categoryUpload, updateCategory);
 router.delete('/:id', deleteCategory);
 router.patch('/deactivate/:id', softDeleteCategory);
 router.patch('/restore/:id', restoreCategory);
